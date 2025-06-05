@@ -1,0 +1,1 @@
+protoc --plugin=protoc-gen-ts_proto=$(pnpm bin)/protoc-gen-ts_proto --ts_proto_out=./generated --ts_proto_opt=outputServices=nice-grpc,forceLong=string user.proto

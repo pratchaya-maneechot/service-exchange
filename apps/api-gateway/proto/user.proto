@@ -1,0 +1,67 @@
+syntax = "proto3";
+
+package user;
+
+option go_package = "github.com/pratchaya-maneechot/service-exchange/apps/users/api/proto/user";
+
+import "google/protobuf/timestamp.proto";
+import "google/protobuf/wrappers.proto";
+
+message User {
+  string id = 1;
+  string name = 2;
+  string phone = 3;
+  string password = 4;
+  string email = 5;
+  repeated UserRole roles = 6;
+  google.protobuf.Timestamp created_at = 7;
+  google.protobuf.Timestamp updated_at = 8;
+}
+
+message LineProfile {
+  string id = 1; // LINE user ID (e.g., U4af4980629...)
+  string user_id = 2; // Associated user ID
+  string display_name = 3;
+  string picture_url = 4;
+  google.protobuf.StringValue status_message = 5;
+}
+
+enum UserRole {
+  POSTER = 0;
+  TASKER = 1;
+}
+
+service UserService {
+  rpc LineRegister(LineRegisterRequest) returns (LineRegisterResponse);
+  rpc UpdateProfile(UpdateProfileRequest) returns (UpdateProfileResponse);
+  rpc GetProfile(GetProfileRequest) returns (GetProfileResponse);
+}
+
+message LineRegisterRequest {
+  string email = 1;
+  string line_id = 2;
+  string display_name = 3;
+  string picture_url = 4;
+  UserRole role = 5;
+}
+
+message LineRegisterResponse {
+  string user_id = 1;
+}
+
+message UpdateProfileRequest {
+  string user_id = 1;
+  string display_name = 2;
+  string picture_url = 3;
+}
+
+message UpdateProfileResponse {}
+
+message GetProfileRequest {
+  string user_id = 1;
+}
+
+message GetProfileResponse {
+  User user = 1;
+  LineProfile line_profile = 2;
+}
