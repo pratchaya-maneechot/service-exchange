@@ -1,0 +1,49 @@
+# Go build artifacts
+*.o
+*.a
+*.test
+*.out
+cover.out
+
+# Generated Protobuf files
+apps/users/api/proto/**/*.pb.go
+apps/users/api/proto/**/*.pb.grpc.go
+
+# Temporary files
+*.tmp
+*.swp
+*~
+
+# IDE and editor files
+.idea/
+.vscode/
+.DS_Store
+
+# Logs
+*.log
+logs/
+tmp/
+
+# Local configuration
+.env
+*.env
+apps/users/internal/infra/config/*.local
+
+# Database migration backups
+apps/users/internal/infra/persistence/postgres/migrations/*.sql.bak
+apps/users/internal/infra/persistence/postgres/migrations/*.sql~
+
+# Deployment local files
+apps/users/deploy/docker/*.local
+apps/users/deploy/k8s/*.local
+docker-compose.override.yml
+
+# OS-specific files
+Thumbs.db
+desktop.ini
+
+wire_gen.go
+bin
+
+generated
+generated.*
