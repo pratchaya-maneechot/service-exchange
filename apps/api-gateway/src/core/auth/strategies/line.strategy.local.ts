@@ -1,16 +1,20 @@
 import { VerifyIDToken } from '@line/bot-sdk';
-import { Injectable, Logger } from '@nestjs/common';
+import { Injectable } from '@nestjs/common';
 import { PassportStrategy } from '@nestjs/passport';
 import { Request } from 'express';
 import { Strategy } from 'passport-local';
 import { catchError, EMPTY, from, tap } from 'rxjs';
-import { LineService } from 'src/core/line/line.service';
 import { Identity } from '../types/auth.type';
+import { LineService } from 'src/core/line/line.service';
+import { InjectPinoLogger, PinoLogger } from 'nestjs-pino';
 
 @Injectable()
 export class LineStrategy extends PassportStrategy(Strategy, 'line') {
-  private readonly logger = new Logger(LineStrategy.name);
-  constructor(private lineService: LineService) {
+  constructor(
+    @InjectPinoLogger(LineStrategy.name)
+    private readonly logger: PinoLogger,
+    private readonly lineService: LineService,
+  ) {
     super();
   }
 

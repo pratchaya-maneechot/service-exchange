@@ -3,12 +3,14 @@ import { IEventHandler } from './events.type';
 import { FollowEvent } from '@line/bot-sdk';
 import { UserService } from 'src/core/user/user.service';
 import { LineService } from '../line.service';
+import { InjectPinoLogger, PinoLogger } from 'nestjs-pino';
 
 @Injectable()
 export class FollowEventHandler implements IEventHandler<FollowEvent> {
-  private readonly logger = new Logger(FollowEventHandler.name);
   readonly eventType = 'follow';
   constructor(
+    @InjectPinoLogger(FollowEventHandler.name)
+    private readonly logger: PinoLogger,
     private readonly userService: UserService,
     private readonly lineService: LineService,
   ) {}
@@ -24,10 +26,13 @@ export class FollowEventHandler implements IEventHandler<FollowEvent> {
       }
 
       const userId = event.source.userId;
-      this.logger.log(`User ${userId} followed the bot`, {
-        userId,
-        timestamp: event.timestamp,
-      });
+      this.logger.info(
+        {
+          userId,
+          timestamp: event.timestamp,
+        },
+        `User ${userId} followed the bot`,
+      );
 
       const lineProfile = await this.lineService.getProfile(userId);
       await this.userService.lineRegister({

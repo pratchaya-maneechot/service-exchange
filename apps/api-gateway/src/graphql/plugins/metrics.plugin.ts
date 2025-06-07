@@ -4,12 +4,14 @@ import {
   GraphQLRequestContext,
   GraphQLRequestListener,
 } from '@apollo/server';
-import { Logger } from '@nestjs/common';
+import { InjectPinoLogger, PinoLogger } from 'nestjs-pino';
 
 @Plugin()
 export class MetricsPlugin implements ApolloServerPlugin {
-  private readonly logger = new Logger(MetricsPlugin.name);
-
+  constructor(
+    @InjectPinoLogger(MetricsPlugin.name)
+    private readonly logger: PinoLogger,
+  ) {}
   async requestDidStart(
     ctx: GraphQLRequestContext<object>,
   ): Promise<GraphQLRequestListener<object>> {
@@ -18,19 +20,19 @@ export class MetricsPlugin implements ApolloServerPlugin {
     return {
       didResolveOperation: async () => {
         if (ctx.operationName) {
-          _logger.log(`Increment Query Count: ${ctx.operationName}`);
+          _logger.info(`Increment Query Count: ${ctx.operationName}`);
         }
       },
       willSendResponse: async () => {
         const duration = Date.now() - startTime;
         if (ctx.operationName) {
-          _logger.log(`Record Query Duration: ${ctx.operationName}`);
+          _logger.info(`Record Query Duration: ${ctx.operationName}`);
         }
       },
       didEncounterErrors: async (err) => {
         err.errors?.forEach((error) => {
           if (ctx.operationName) {
-            _logger.log(`Record Error Count: ${ctx.operationName}`);
+            _logger.info(`Record Error Count: ${ctx.operationName}`);
           }
         });
       },

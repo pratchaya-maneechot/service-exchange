@@ -4,19 +4,19 @@ import {
   Headers,
   HttpCode,
   HttpStatus,
-  Logger,
   Post,
   UnauthorizedException,
 } from '@nestjs/common';
 import { LineService } from './line.service';
 import { EventHandlerFactory } from './events/events.factory';
 import { WebhookRequestBody } from '@line/bot-sdk';
+import { InjectPinoLogger, PinoLogger } from 'nestjs-pino';
 
 @Controller('line')
 export class LineController {
-  private readonly logger = new Logger(LineController.name);
-
   constructor(
+    @InjectPinoLogger(LineController.name)
+    private readonly logger: PinoLogger,
     private readonly lineService: LineService,
     private readonly eventHandler: EventHandlerFactory,
   ) {}

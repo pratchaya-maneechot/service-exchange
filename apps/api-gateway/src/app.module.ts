@@ -5,9 +5,11 @@ import { TerminusModule } from '@nestjs/terminus';
 import { CoreModule } from './core/core.module';
 import { env } from './config/env.config';
 import { GraphQLModule } from './graphql/graphql.module';
+import { AppLoggerModule } from './observability/logging/logger';
 
 @Module({
   imports: [
+    AppLoggerModule,
     ConfigModule.forRoot({
       isGlobal: true,
       load: [env],

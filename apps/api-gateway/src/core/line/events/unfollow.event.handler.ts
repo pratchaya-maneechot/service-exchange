@@ -1,11 +1,15 @@
-import { Injectable, Logger } from '@nestjs/common';
+import { Injectable } from '@nestjs/common';
 import { IEventHandler } from './events.type';
 import { UnfollowEvent } from '@line/bot-sdk';
+import { InjectPinoLogger, PinoLogger } from 'nestjs-pino';
 
 @Injectable()
 export class UnfollowEventHandler implements IEventHandler<UnfollowEvent> {
-  private readonly logger = new Logger(UnfollowEventHandler.name);
-  readonly eventType = 'unfollow' as const;
+  readonly eventType = 'unfollow';
+  constructor(
+    @InjectPinoLogger(UnfollowEventHandler.name)
+    private readonly logger: PinoLogger,
+  ) {}
 
   async handle(event: UnfollowEvent): Promise<void> {
     try {
@@ -19,10 +23,13 @@ export class UnfollowEventHandler implements IEventHandler<UnfollowEvent> {
       }
 
       const userId = event.source.userId;
-      this.logger.log(`User ${userId} unfollowed the bot`, {
-        userId,
-        timestamp: event.timestamp,
-      });
+      this.logger.info(
+        {
+          userId,
+          timestamp: event.timestamp,
+        },
+        `User ${userId} unfollowed the bot`,
+      );
 
       await this.updateUserStatus(userId);
     } catch (error) {

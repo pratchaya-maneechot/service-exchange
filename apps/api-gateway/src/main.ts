@@ -1,19 +1,17 @@
 import { NestFactory } from '@nestjs/core';
 import { ConfigService } from '@nestjs/config';
-import { Logger, ValidationPipe } from '@nestjs/common';
+import { ValidationPipe } from '@nestjs/common';
 import { AppModule } from './app.module';
 import { EnvConfig } from './config/config.type';
+import { Logger, LoggerErrorInterceptor, PinoLogger } from 'nestjs-pino';
 
 async function bootstrap() {
-  const logger = new Logger('Bootstrap');
-
   try {
-    const app = await NestFactory.create(AppModule, {
-      logger: ['error', 'warn', 'log', 'debug', 'verbose'],
-    });
-
+    const app = await NestFactory.create(AppModule);
     const config = app.get(ConfigService<EnvConfig>);
-
+    app.useLogger(app.get(Logger));
+    app.useGlobalInterceptors(new LoggerErrorInterceptor());
+    const logger = app.get(Logger);
     app.useGlobalPipes(
       new ValidationPipe({
         transform: true,
@@ -58,19 +56,20 @@ async function bootstrap() {
       void app.close().then(() => process.exit(0));
     });
   } catch (error) {
-    logger.error('Error starting application:', error);
+    const logger = new PinoLogger({ renameContext: 'StartingApplication' });
+    logger.error(error, 'Error starting application');
     process.exit(1);
   }
 }
 
 process.on('unhandledRejection', (reason, promise) => {
-  const logger = new Logger('UnhandledRejection');
-  logger.error('Unhandled Rejection at:', promise, 'reason:', reason);
+  const logger = new PinoLogger({ renameContext: 'UnhandledRejection' });
+  logger.error({ promise, 'reason:': reason }, 'Unhandled Rejection at:');
   process.exit(1);
 });
 
 process.on('uncaughtException', (error) => {
-  const logger = new Logger('UncaughtException');
+  const logger = new PinoLogger({ renameContext: 'UncaughtException' });
   logger.error('Uncaught Exception:', error);
   process.exit(1);
 });

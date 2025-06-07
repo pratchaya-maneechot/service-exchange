@@ -5,15 +5,16 @@ import {
   WebhookRequestBody,
   VerifyIDToken,
 } from '@line/bot-sdk';
-import { Injectable, Logger } from '@nestjs/common';
+import { Injectable } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
+import { InjectPinoLogger, PinoLogger } from 'nestjs-pino';
 import { EnvConfig } from 'src/config/config.type';
 
 @Injectable()
 export class LineService {
-  private readonly logger = new Logger(LineService.name);
-
   constructor(
+    @InjectPinoLogger(LineService.name)
+    private readonly logger: PinoLogger,
     private readonly authClient: OAuth,
     private readonly config: ConfigService<EnvConfig>,
     private readonly client: messagingApi.MessagingApiClient,
