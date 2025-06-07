@@ -56,13 +56,12 @@ export class GrpcClientFactory {
   createClients<T extends grpc.Client>(
     configs: GrpcServiceConfig[],
   ): Map<string, T> {
-    return configs.reduce(
-      (clients, config) => {
-        clients[GrpcClientFactory.key(config.packageName, config.serviceName)] =
-          this.createClient<T>(config);
-        return clients;
-      },
-      {} as Map<string, T>,
-    );
+    return configs.reduce((clients, config) => {
+      clients.set(
+        GrpcClientFactory.key(config.packageName, config.serviceName),
+        this.createClient<T>(config),
+      );
+      return clients;
+    }, new Map<string, T>());
   }
 }

@@ -1,5 +1,6 @@
 import { toNumber, getOsEnv } from 'src/common/utils/env.util';
-import { EnvConfig, GrpcConfig } from './config.type';
+import { EnvConfig } from './config.type';
+import { join } from 'path';
 
 export const env = (): EnvConfig => ({
   app: {
@@ -19,16 +20,10 @@ export const env = (): EnvConfig => ({
     password: getOsEnv('REDIS_PASSWORD', ''),
     db: toNumber(getOsEnv('REDIS_DB', '0')),
   },
-  // jwt: {
-  //   secret: getOsEnv('JWT_SECRET'),
-  //   expiresIn: getOsEnv('JWT_EXPIRES_IN', '1d'),
-  //   refreshSecret: getOsEnv('JWT_REFRESH_SECRET'),
-  //   refreshExpiresIn: getOsEnv('JWT_REFRESH_EXPIRES_IN', '7d'),
-  // },
   grpc: {
     packages: {
       user: {
-        protoPath: '',
+        protoPath: join(__dirname, '..', '..', './proto/user.proto'),
         endpoint: getOsEnv('GRPC_USER_ENDPOINT', 'localhost:50051'),
       },
     },
