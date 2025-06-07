@@ -1,13 +1,17 @@
 import { Module } from '@nestjs/common';
 import { LineService } from './line.service';
-import { LineController } from './line.controller';
 import { messagingApi, OAuth } from '@line/bot-sdk';
 import { ConfigService } from '@nestjs/config';
 import { EnvConfig } from 'src/config/config.type';
-import { LineEventModule } from './events/events.module';
+import { EventHandlerFactory } from './events/events.factory';
+import { IEventHandler } from './events/events.type';
+import { FollowEventHandler } from './events/follow.event.handler';
+import { UnfollowEventHandler } from './events/unfollow.event.handler';
+import { LineController } from './line.controller';
+import { UserModule } from 'src/core/user/user.module';
 
 @Module({
-  imports: [LineEventModule],
+  imports: [UserModule],
   controllers: [LineController],
   providers: [
     {
@@ -25,6 +29,15 @@ import { LineEventModule } from './events/events.module';
       },
       inject: [ConfigService],
     },
+    {
+      provide: EventHandlerFactory,
+      useFactory: (...handler: IEventHandler[]) => {
+        return new EventHandlerFactory(...handler);
+      },
+      inject: [FollowEventHandler, UnfollowEventHandler],
+    },
+    FollowEventHandler,
+    UnfollowEventHandler,
     LineService,
   ],
   exports: [LineService],

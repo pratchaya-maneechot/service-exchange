@@ -4,9 +4,10 @@ import { FollowEventHandler } from './follow.event.handler';
 import { UnfollowEventHandler } from './unfollow.event.handler';
 import { IEventHandler } from './events.type';
 import { UserModule } from 'src/core/user/user.module';
+import { LineModule } from '../line.module';
 
 @Module({
-  imports: [UserModule],
+  imports: [UserModule, LineModule],
   providers: [
     {
       provide: EventHandlerFactory,
@@ -15,6 +16,8 @@ import { UserModule } from 'src/core/user/user.module';
       },
       inject: [FollowEventHandler, UnfollowEventHandler],
     },
+    FollowEventHandler,
+    UnfollowEventHandler,
   ],
   exports: [EventHandlerFactory],
 })
