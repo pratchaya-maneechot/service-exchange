@@ -7,11 +7,11 @@ metadata:
     app: api-gateway
     app.kubernetes.io/name: api-gateway
 spec:
-  type: ClusterIP # Default type, will be overridden by Ingress/NodePort in overlays
+  type: ClusterIP
   ports:
     - protocol: TCP
-      port: 80 # Service listens on port 80 (common for HTTP)
-      targetPort: http # Forwards to the named port 'http' (containerPort 3000)
-      name: http # Named port for the service
+      port: 80
+      targetPort: http
+      name: http
   selector:
-    app: api-gateway # Selects pods with this label (matches deployment)
+    app: api-gateway

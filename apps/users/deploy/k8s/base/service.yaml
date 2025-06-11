@@ -1,0 +1,17 @@
+apiVersion: v1
+kind: Service
+metadata:
+  name: users-service # ชื่อ Service ที่ API Gateway จะใช้เรียก
+  labels:
+    app: users-service
+    app.kubernetes.io/name: users-service
+    component: backend
+spec:
+  type: ClusterIP # สำหรับ Internal communication เท่านั้น
+  ports:
+    - protocol: TCP
+      port: 50051 # พอร์ตที่ Service เปิดให้ Pods อื่นๆ ใน Cluster เรียก
+      targetPort: grpc-port # ชื่อพอร์ตภายใน Container (มาจาก deployment.yaml)
+      name: grpc # ชื่อพอร์ตสำหรับ gRPC (ตาม convention)
+  selector:
+    app: users-service # เลือก Pods ที่มี label นี้ (matches deployment)

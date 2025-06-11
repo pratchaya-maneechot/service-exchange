@@ -29,11 +29,11 @@ spec:
         fsGroup: 1000
       containers:
         - name: api-gateway
-          image: api-gateway:latest # Placeholder image, overridden in overlays
-          imagePullPolicy: Always # Always pull by default for base
+          image: api-gateway
+          imagePullPolicy: Always
           ports:
             - containerPort: 3000
-              name: http # Named port for probes and service targetPort
+              name: http
               protocol: TCP
           env:
             - name: NODE_ENV
