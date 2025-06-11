@@ -1,0 +1,12 @@
+# k8s/overlays/dev/service-patch.yaml
+apiVersion: v1
+kind: Service
+metadata:
+  name: api-gateway
+spec:
+  type: NodePort # Change service type to NodePort for direct access
+  ports:
+    - protocol: TCP
+      port: 80
+      targetPort: http
+      nodePort: 30080

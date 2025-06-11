@@ -1,0 +1,34 @@
+# k8s/overlays/dev/kustomization.yaml
+apiVersion: kustomize.config.k8s.io/v1beta1
+kind: Kustomization
+
+namespace: my-app-dev
+
+resources:
+  - ../../base
+  - service-accounts.yaml
+
+images:
+  - name: api-gateway
+    newName: api-gateway
+    newTag: dev
+
+patches:
+  - path: deployment-patch.yaml
+    target:
+      kind: Deployment
+      name: api-gateway
+  - path: configmap-patch.yaml
+    target:
+      kind: ConfigMap
+      name: api-gateway-config
+  - path: service-patch.yaml
+    target:
+      kind: Service
+      name: api-gateway
+
+labels:
+  - pairs:
+      environment: dev
+    includeSelectors: true
+    includeTemplates: true

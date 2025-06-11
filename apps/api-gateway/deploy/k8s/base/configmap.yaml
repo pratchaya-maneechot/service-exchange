@@ -1,0 +1,9 @@
+# k8s/base/api-gateway/configmap.yaml
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: api-gateway-config
+data:
+  NODE_ENV: 'development'
+  PORT: '3000'
+  LOG_LEVEL: 'debug'

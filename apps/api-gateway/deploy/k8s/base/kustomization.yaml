@@ -1,0 +1,25 @@
+# k8s/base/api-gateway/kustomization.yaml
+apiVersion: kustomize.config.k8s.io/v1beta1
+kind: Kustomization
+
+resources:
+  - deployment.yaml
+  - service.yaml
+  - configmap.yaml
+  - secret.yaml
+
+labels:
+  - pairs:
+      app: api-gateway # Use 'app' for selector matching, as in your deployments/services
+      app.kubernetes.io/name: api-gateway
+      component: backend
+    includeSelectors: true
+    includeTemplates: true
+
+commonAnnotations:
+  app.kubernetes.io/name: api-gateway
+  app.kubernetes.io/component: backend
+
+images:
+  - name: api-gateway
+    newTag: latest

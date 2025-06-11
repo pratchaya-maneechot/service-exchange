@@ -1,0 +1,17 @@
+# k8s/base/api-gateway/service.yaml
+apiVersion: v1
+kind: Service
+metadata:
+  name: api-gateway
+  labels:
+    app: api-gateway
+    app.kubernetes.io/name: api-gateway
+spec:
+  type: ClusterIP # Default type, will be overridden by Ingress/NodePort in overlays
+  ports:
+    - protocol: TCP
+      port: 80 # Service listens on port 80 (common for HTTP)
+      targetPort: http # Forwards to the named port 'http' (containerPort 3000)
+      name: http # Named port for the service
+  selector:
+    app: api-gateway # Selects pods with this label (matches deployment)

@@ -7,6 +7,7 @@
   "license": "UNLICENSED",
   "scripts": {
     "build": "nest build",
+    "build:image": "pnpm build && docker build -t api-gateway:dev -f deploy/docker/Dockerfile .",
     "format": "prettier --write \"src/**/*.ts\" \"test/**/*.ts\"",
     "start": "nest start",
     "start:dev": "nest start --watch",
@@ -18,7 +19,11 @@
     "test:cov": "jest --coverage",
     "test:debug": "node --inspect-brk -r tsconfig-paths/register -r ts-node/register node_modules/.bin/jest --runInBand",
     "test:e2e": "jest --config ./test/jest-e2e.json",
-    "generate:line-token": "ts-node ./scripts/generate-line-token.ts"
+    "generate:line-token": "ts-node ./scripts/generate-line-token.ts",
+    "minikube:build-image": "eval $(minikube docker-env) && pnpm build && pnpm build:image",
+    "minikube:deploy": "kubectl apply -k deploy/k8s/overlays/dev",
+    "minikube:destroy": "kubectl delete -k deploy/k8s/overlays/dev",
+    "minikube:service": "minikube service api-gateway -n my-app-dev"
   },
   "dependencies": {
     "@apollo/server": "^4.12.1",
