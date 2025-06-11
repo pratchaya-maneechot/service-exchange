@@ -7,7 +7,7 @@ type LineRegister struct {
 	StatusMessage *string
 }
 
-var LineRegisterCommand = "LineRegister"
+const LineRegisterCommand = "LineRegister"
 
 func (c LineRegister) CommandName() string {
 	return LineRegisterCommand

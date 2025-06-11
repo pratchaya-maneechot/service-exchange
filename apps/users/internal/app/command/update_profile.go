@@ -8,7 +8,7 @@ type UpdateUserProfile struct {
 	Email    *string
 }
 
-var UpdateUserProfileCommand = "UpdateUserProfile"
+const UpdateUserProfileCommand = "UpdateUserProfile"
 
 func (c UpdateUserProfile) CommandName() string {
 	return UpdateUserProfileCommand

@@ -16,11 +16,11 @@ type UserServer struct {
 	logger     *slog.Logger
 }
 
-func Register(GRPCerver *grpc.Server, appModule *app.AppModule, logger *slog.Logger) {
+func Register(gRPCServer *grpc.Server, appModule *app.AppModule, logger *slog.Logger) {
 	server := &UserServer{
 		commandBus: appModule.CommandBus,
 		queryBus:   appModule.QueryBus,
 		logger:     logger,
 	}
-	userpb.RegisterUserServiceServer(GRPCerver, server)
+	userpb.RegisterUserServiceServer(gRPCServer, server)
 }

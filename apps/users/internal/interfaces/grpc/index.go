@@ -21,7 +21,7 @@ import (
 )
 
 type Server struct {
-	GRPCerver    *grpc.Server
+	gRPCServer   *grpc.Server
 	listener     net.Listener
 	config       *config.Config
 	logger       *slog.Logger
@@ -73,26 +73,26 @@ func NewServer(
 		),
 	)
 
-	GRPCerver := grpc.NewServer(opts...)
+	gRPCServer := grpc.NewServer(opts...)
 
-	userServer.Register(GRPCerver, appModule, logger)
+	userServer.Register(gRPCServer, appModule, logger)
 
 	var healthServer *health.Server
 	if cfg.Server.EnableHealthCheck {
 		healthServer = health.NewServer()
-		grpc_health_v1.RegisterHealthServer(GRPCerver, healthServer)
+		grpc_health_v1.RegisterHealthServer(gRPCServer, healthServer)
 		healthServer.SetServingStatus("", grpc_health_v1.HealthCheckResponse_SERVING)
 		healthServer.SetServingStatus("user.UserService", grpc_health_v1.HealthCheckResponse_SERVING)
 		logger.Info("health check service enabled")
 	}
 
 	if cfg.Server.EnableReflection {
-		reflection.Register(GRPCerver)
+		reflection.Register(gRPCServer)
 		logger.Info("gRPC reflection enabled")
 	}
 
 	return &Server{
-		GRPCerver:    GRPCerver,
+		gRPCServer:   gRPCServer,
 		config:       cfg,
 		logger:       logger,
 		healthServer: healthServer,
@@ -112,7 +112,7 @@ func (s *Server) Start(ctx context.Context) error {
 
 	go s.handleShutdown(ctx)
 
-	if err := s.GRPCerver.Serve(listener); err != nil {
+	if err := s.gRPCServer.Serve(listener); err != nil {
 		s.logger.Error("gRPC server serve error", "error", err)
 		return errors.Wrap(err, "failed to serve gRPC server")
 	}
@@ -134,7 +134,7 @@ func (s *Server) handleShutdown(ctx context.Context) {
 
 	done := make(chan struct{})
 	go func() {
-		s.GRPCerver.GracefulStop()
+		s.gRPCServer.GracefulStop()
 		close(done)
 	}()
 
@@ -143,7 +143,7 @@ func (s *Server) handleShutdown(ctx context.Context) {
 		s.logger.Info("gRPC server stopped gracefully")
 	case <-shutdownCtx.Done():
 		s.logger.Warn("shutdown timeout exceeded, forcing stop")
-		s.GRPCerver.Stop()
+		s.gRPCServer.Stop()
 	}
 }
 
