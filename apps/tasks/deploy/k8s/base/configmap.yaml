@@ -1,0 +1,13 @@
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: users-service-config
+  labels:
+    app: users-service
+    app.kubernetes.io/name: users-service
+    component: backend # users-service เป็น backend
+data:
+  LOG_LEVEL: "info"
+  # ตัวอย่าง: หาก users-service ต้องการเข้าถึง DB หรือ Message Queue
+  # DATABASE_HOST: "database-service.default.svc.cluster.local" # หรือตามชื่อ service ที่คุณตั้ง
+  # MESSAGE_QUEUE_HOST: "rabbitmq-service.default.svc.cluster.local"

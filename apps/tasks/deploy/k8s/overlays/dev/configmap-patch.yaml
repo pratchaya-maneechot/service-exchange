@@ -1,0 +1,8 @@
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: users-service-config # ต้องตรงกับชื่อใน base
+data:
+  LOG_LEVEL: "debug" # เปลี่ยนเป็น debug สำหรับ Dev
+  # ตัวอย่าง: เปลี่ยน Endpoint ของ Dependency สำหรับ Dev
+  # DATABASE_HOST: "database-service-dev.default.svc.cluster.local"

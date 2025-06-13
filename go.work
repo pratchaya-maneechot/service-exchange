@@ -1,5 +1,6 @@
 go 1.24.3
 
 use (
+	./apps/tasks
 	./apps/users
 )
