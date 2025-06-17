@@ -84,14 +84,14 @@ func Load() (*Config, error) {
 
 	viper.SetConfigName("config")
 	viper.SetConfigType("yml")
-	viper.AddConfigPath("./internal/config")
+	viper.AddConfigPath("/app/config")
+	viper.AddConfigPath("./apps/users/internal/config")
 	viper.AutomaticEnv()
 	viper.SetEnvKeyReplacer(strings.NewReplacer(".", "_"))
 
 	if err := viper.ReadInConfig(); err != nil {
 		return nil, fmt.Errorf("failed to read config file: %w", err)
 	}
-	viper.AllKeys()
 
 	cfg := &Config{}
 	if err := viper.Unmarshal(cfg); err != nil {

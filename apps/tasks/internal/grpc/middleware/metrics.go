@@ -12,7 +12,7 @@ import (
 )
 
 func UnaryMetricsInterceptor() grpc.UnaryServerInterceptor {
-	return func(ctx context.Context, req interface{}, info *grpc.UnaryServerInfo, handler grpc.UnaryHandler) (interface{}, error) {
+	return func(ctx context.Context, req any, info *grpc.UnaryServerInfo, handler grpc.UnaryHandler) (any, error) {
 		start := time.Now()
 
 		resp, err := handler(ctx, req)
@@ -33,7 +33,7 @@ func UnaryMetricsInterceptor() grpc.UnaryServerInterceptor {
 }
 
 func StreamMetricsInterceptor() grpc.StreamServerInterceptor {
-	return func(srv interface{}, stream grpc.ServerStream, info *grpc.StreamServerInfo, handler grpc.StreamHandler) error {
+	return func(srv any, stream grpc.ServerStream, info *grpc.StreamServerInfo, handler grpc.StreamHandler) error {
 		start := time.Now()
 
 		err := handler(srv, stream)

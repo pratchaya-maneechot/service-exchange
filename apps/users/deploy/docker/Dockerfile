@@ -1,53 +1,65 @@
-# Stage 1: build-env (Build the Go application)
 FROM golang:1.24-alpine AS build-env
 
-# ติดตั้งแพ็คเกจที่จำเป็นสำหรับการคอมไพล์ (ถ้ามี เช่น git, CGO_ENABLED=0 ไม่ต้องใช้ gcc)
-# ถ้าคุณใช้ CGO และต้องการ build ที่ซับซ้อน อาจจะต้องเพิ่ม build-base หรือ gcc
+# git อาจจำเป็นถ้า Go modules ของคุณมีการดึง dependency จาก private repo หรือ git
 RUN apk update && apk add --no-cache git
 
-# ตั้งค่า Working Directory สำหรับ Go Modules และ Go Workspace
+# ตั้งค่า Working Directory หลักสำหรับ Go Workspace ใน build stage
 WORKDIR /app
 
-# Copy go.work และ go.mod/go.sum ของแต่ละโมดูล
-# เพื่อให้ Go Modules สามารถ resolve dependencies ได้อย่างถูกต้อง
+# Copy go.work และ go.mod/go.sum ของแต่ละโมดูลก่อน
+# สิ่งนี้ช่วยให้ Docker cache layer ถูกนำกลับมาใช้ใหม่ได้ หากไม่มีการเปลี่ยนแปลงในไฟล์เหล่านี้
+# การแยก COPY นี้จะช่วยให้ build เร็วขึ้นในภายหลัง
 COPY go.work .
-# Copy go.mod และ go.sum ของ main app
 COPY apps/users/go.mod apps/users/go.mod
-# Copy go.mod และ go.sum ของ libs (ถ้ามี)
-# หาก libs/utils และ libs/core มี go.mod/go.sum ของตัวเอง ให้ copy มาด้วย
+COPY apps/users/go.sum apps/users/go.sum
+COPY apps/users/go.mod apps/users/go.mod
+COPY apps/users/go.sum apps/users/go.sum
+
+# ถ้ามี libs/modules อื่นๆ ใน go.work ที่ project นี้ใช้ ให้ copy go.mod/go.sum ของ libs นั้นๆ ด้วย
+# ตัวอย่าง:
 # COPY libs/utils/go.mod libs/utils/go.mod
+# COPY libs/utils/go.sum libs/utils/go.sum
 # COPY libs/core/go.mod libs/core/go.mod
+# COPY libs/core/go.sum libs/core/go.sum
+
 
 # ดาวน์โหลด dependencies โดยใช้ go work sync (สำหรับ Go 1.18+)
-# หรือ go mod download (ถ้าไม่ใช้ go work sync)
-# นี่จะดึง dependencies มาไว้ใน cache ก่อนที่จะ copy source code ทั้งหมด
+# การใช้ go work sync จะดีกว่าสำหรับ Go Workspace
 RUN go work sync
 
+
 # Copy source code ของแต่ละโมดูลที่เกี่ยวข้อง
+# Copy เฉพาะสิ่งที่จำเป็นสำหรับการ build เพื่อลดขนาด context ที่ส่งไป Docker daemon
 COPY apps/users apps/users
+COPY apps/users apps/users
+# ถ้ามี libs/modules อื่นๆ ใน go.work ที่ project นี้ใช้ ให้ copy มาด้วย
 # COPY libs/utils libs/utils
 # COPY libs/core libs/core
 
-# Build the Go application
-# CGO_ENABLED=0 เพื่อสร้าง Static Binary ที่ไม่ต้องพึ่งพา C libraries ใน Runtime (ทำให้ image เล็กลง)
-# -o /usr/local/bin/users-service คือ output binary path
-# ./apps/users/cmd/main.go คือ entry point ของ main app
-WORKDIR /app/apps/users/cmd
-RUN CGO_ENABLED=0 go build -ldflags="-s -w" -o /usr/local/bin/users-service ./main.go
 
-# Stage 2: production-ready (Create a minimal image)
+# Build the Go application
+# CGO_ENABLED=0 เพื่อสร้าง Static Binary ที่ไม่ต้องพึ่งพา C libraries ใน Runtime (ทำให้ image เล็กลงและ portable)
+# -ldflags="-s -w" เพื่อลดขนาด binary โดยการลบ debug info และ symbol table
+# -o /usr/local/bin/users-service คือ output binary path ใน Container
+# ./apps/users/cmd/api/main.go คือ entry point ของ main app
+# WORKDIR ยังอยู่ที่ /app ทำให้ path "./apps/users/cmd/api/main.go" ทำงานได้
+RUN CGO_ENABLED=0 go build -ldflags="-s -w" -o /usr/local/bin/users-service ./apps/users/cmd/api/main.go
+
+# Stage 2: production-ready (Create a minimal and secure image)
 FROM alpine:latest
 
-# กำหนด User ID/Group ID เพื่อความปลอดภัย (non-root user)
-# สร้าง user และ group ที่จะใช้รันแอป
 RUN addgroup -S appgroup && adduser -S appuser -G appgroup
-USER appuser
 
-# Copy the compiled binary from the build-env stage
+WORKDIR /app
+
 COPY --from=build-env /usr/local/bin/users-service /usr/local/bin/users-service
 
-# Expose the gRPC port (matching your const port = ":50051")
+RUN mkdir -p /app/config
+# viper.AddConfigPath("/app/config") in apps/users/internal/config/config.go
+COPY apps/users/internal/config/config.yml /app/config/config.yml
+
+USER appuser
+
 EXPOSE 50051
 
-# Define the command to run your application
 CMD ["/usr/local/bin/users-service"]

@@ -2,15 +2,16 @@ package middleware
 
 import (
 	"context"
-	"log/slog"
+	"strconv"
 	"time"
 
+	"github.com/pratchaya-maneechot/service-exchange/apps/users/internal/infra/observability/metrics"
 	"google.golang.org/grpc"
 	"google.golang.org/grpc/codes"
 	"google.golang.org/grpc/status"
 )
 
-func UnaryLoggingInterceptor(logger *slog.Logger) grpc.UnaryServerInterceptor {
+func UnaryMetricsInterceptor() grpc.UnaryServerInterceptor {
 	return func(ctx context.Context, req any, info *grpc.UnaryServerInfo, handler grpc.UnaryHandler) (any, error) {
 		start := time.Now()
 
@@ -21,22 +22,17 @@ func UnaryLoggingInterceptor(logger *slog.Logger) grpc.UnaryServerInterceptor {
 		if err != nil {
 			if st, ok := status.FromError(err); ok {
 				code = st.Code()
-			} else {
-				code = codes.Unknown
 			}
 		}
 
-		logger.Info("gRPC unary call",
-			"method", info.FullMethod,
-			"duration", duration,
-			"status_code", code.String(),
-			"error", err)
+		metrics.GrpcRequestsTotal.WithLabelValues(info.FullMethod, strconv.Itoa(int(code))).Inc()
+		metrics.GrpcRequestDuration.WithLabelValues(info.FullMethod).Observe(duration.Seconds())
 
 		return resp, err
 	}
 }
 
-func StreamLoggingInterceptor(logger *slog.Logger) grpc.StreamServerInterceptor {
+func StreamMetricsInterceptor() grpc.StreamServerInterceptor {
 	return func(srv any, stream grpc.ServerStream, info *grpc.StreamServerInfo, handler grpc.StreamHandler) error {
 		start := time.Now()
 
@@ -52,11 +48,8 @@ func StreamLoggingInterceptor(logger *slog.Logger) grpc.StreamServerInterceptor 
 			}
 		}
 
-		logger.Info("gRPC stream call",
-			"method", info.FullMethod,
-			"duration", duration,
-			"status_code", code.String(),
-			"error", err)
+		metrics.GrpcRequestsTotal.WithLabelValues(info.FullMethod, strconv.Itoa(int(code))).Inc()
+		metrics.GrpcRequestDuration.WithLabelValues(info.FullMethod).Observe(duration.Seconds())
 
 		return err
 	}

@@ -5,7 +5,7 @@ import (
 	"fmt"
 	"reflect"
 
-	"github.com/pratchaya-maneechot/service-exchange/apps/tasks/pkg/bus/handler"
+	"github.com/pratchaya-maneechot/service-exchange/apps/users/pkg/bus/handler"
 )
 
 // QueryBus is a concrete implementation of QueryBus that stores handlers in memory.

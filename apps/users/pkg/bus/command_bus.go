@@ -5,7 +5,7 @@ import (
 	"fmt"
 	"reflect"
 
-	"github.com/pratchaya-maneechot/service-exchange/apps/tasks/pkg/bus/handler"
+	"github.com/pratchaya-maneechot/service-exchange/apps/users/pkg/bus/handler"
 )
 
 // CommandBus is a concrete implementation of CommandBus that stores handlers in memory.
@@ -102,23 +102,20 @@ func (b *commandBus) RegisterHandler(cmdType Command, handler any) error {
 }
 
 // Dispatch dispatches a Command to its registered handler.
-func (b *commandBus) Dispatch(ctx context.Context, cmd Command) error {
+func (b *commandBus) Dispatch(ctx context.Context, cmd Command) (any, error) {
 	cmdType := reflect.TypeOf(cmd)
 
 	handlerUntyped, ok := b.handlers.Load(cmdType)
 	if !ok {
-		return ErrNoCommandHandlerFound{CommandType: cmdType}
+		return nil, ErrNoQueryHandlerFound{QueryType: cmdType}
 	}
 
 	handlerVal := reflect.ValueOf(handlerUntyped)
 	handleMethod := handlerVal.MethodByName("Handle")
-	// The following check is now less critical as it's primarily done in RegisterHandler,
-	// but kept for robustness against potential future misuses.
 	if !handleMethod.IsValid() {
-		return ErrInvalidCommandHandler{
+		return nil, ErrInvalidQueryHandler{
 			HandlerType: reflect.TypeOf(handlerUntyped),
-			CommandType: cmdType,
-			Reason:      "handler's 'Handle' method is invalid (should have been caught during registration)",
+			QueryType:   cmdType,
 		}
 	}
 
@@ -129,9 +126,15 @@ func (b *commandBus) Dispatch(ctx context.Context, cmd Command) error {
 
 	results := handleMethod.Call(args)
 
-	if len(results) > 0 && !results[0].IsNil() {
-		return results[0].Interface().(error)
+	var err error
+	if len(results) > 1 && !results[1].IsNil() { // Error is the second return value
+		err = results[1].Interface().(error)
 	}
 
-	return nil
+	var result any
+	if len(results) > 0 { // Result is the first return value
+		result = results[0].Interface()
+	}
+
+	return result, err
 }

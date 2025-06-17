@@ -8,13 +8,15 @@ import (
 
 	"github.com/google/wire"
 	"github.com/pratchaya-maneechot/service-exchange/apps/users/internal/app"
+	"github.com/pratchaya-maneechot/service-exchange/apps/users/internal/app/command"
+	"github.com/pratchaya-maneechot/service-exchange/apps/users/internal/app/query"
 	"github.com/pratchaya-maneechot/service-exchange/apps/users/internal/config"
+	grpc "github.com/pratchaya-maneechot/service-exchange/apps/users/internal/grpc"
 	"github.com/pratchaya-maneechot/service-exchange/apps/users/internal/infra"
 	logger "github.com/pratchaya-maneechot/service-exchange/apps/users/internal/infra/observability/logging"
-	"github.com/pratchaya-maneechot/service-exchange/apps/users/internal/interfaces/grpc"
+	"github.com/pratchaya-maneechot/service-exchange/apps/users/pkg/bus"
 )
 
-// Provider functions
 func ProvideConfig() (*config.Config, error) {
 	return config.Load()
 }
@@ -27,43 +29,56 @@ func ProvideShutdownHandler(logger *slog.Logger, cfg *config.Config) *ShutdownHa
 	return NewShutdownHandler(logger, cfg.Server.ShutdownTimeout)
 }
 
-type App struct {
+type Internal struct {
 	Config   *config.Config
 	Server   *grpc.Server
 	Infra    *infra.InfraModule
 	Logger   *slog.Logger
 	App      *app.AppModule
+	Bus      *bus.Bus
 	Shutdown *ShutdownHandler
 }
 
-func NewApp(
-	config *config.Config,
-	server *grpc.Server,
-	infra *infra.InfraModule,
-	appModule *app.AppModule,
-	shutdown *ShutdownHandler,
-	logger *slog.Logger,
-) App {
-	return App{
-		Config:   config,
-		Server:   server,
-		Infra:    infra,
-		App:      appModule,
-		Shutdown: shutdown,
-		Logger:   logger,
+func NewInternal(
+	cf *config.Config,
+	gs *grpc.Server,
+	inf *infra.InfraModule,
+	app *app.AppModule,
+	bus *bus.Bus,
+	sd *ShutdownHandler,
+	lg *slog.Logger,
+) *Internal {
+
+	bus.CommandBus.RegisterHandler(command.LineLoginCommand{}, app.UserCommand.HandleLineLogin)
+	bus.CommandBus.RegisterHandler(command.RegisterUserCommand{}, app.UserCommand.HandleRegisterUser)
+	bus.CommandBus.RegisterHandler(command.SubmitIdentityVerificationCommand{}, app.UserCommand.HandleSubmitIdentityVerification)
+	bus.CommandBus.RegisterHandler(command.UpdateUserProfileCommand{}, app.UserCommand.HandleUpdateUserProfile)
+	bus.CommandBus.RegisterHandler(command.UserLoginCommand{}, app.UserCommand.HandleUserLogin)
+
+	bus.QueryBus.RegisterHandler(query.GetUserIdentityVerificationQuery{}, app.UserQuery.HandleGetUserIdentityVerification)
+	bus.QueryBus.RegisterHandler(query.GetUserProfileQuery{}, app.UserQuery.HandleGetUserProfile)
+
+	return &Internal{
+		Config:   cf,
+		Server:   gs,
+		Infra:    inf,
+		App:      app,
+		Bus:      bus,
+		Shutdown: sd,
+		Logger:   lg,
 	}
 }
 
-// InitializeApp initializes the entire application
-func InitializeApp() (App, error) {
+func InitializeApp() (*Internal, error) {
 	wire.Build(
 		ProvideConfig,
 		ProvideLogger,
 		ProvideShutdownHandler,
-		infra.InfraModuleSet,
 		app.AppModuleSet,
+		bus.BusModuleSet,
 		grpc.NewServer,
-		NewApp,
+		infra.InfraModuleSet,
+		NewInternal,
 	)
-	return App{}, nil
+	return &Internal{}, nil
 }
