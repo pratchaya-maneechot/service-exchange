@@ -3,7 +3,7 @@ package command
 import (
 	"context"
 
-	"github.com/pratchaya-maneechot/service-exchange/apps/tasks/internal/domain/shared"
+	"github.com/pratchaya-maneechot/service-exchange/apps/tasks/internal/domain/shared/ids"
 	"github.com/pratchaya-maneechot/service-exchange/apps/tasks/internal/domain/task"
 )
 
@@ -26,8 +26,8 @@ func NewTaskCommandService(repo task.TaskRepository) *TaskCommandService {
 	}
 }
 
-func (s *TaskCommandService) HandleCreateTaskCommand(ctx context.Context, cmd CreateTaskCommand) (shared.TaskID, error) {
-	newTaskID := shared.NewTaskID()
+func (s *TaskCommandService) HandleCreateTaskCommand(ctx context.Context, cmd CreateTaskCommand) (ids.TaskID, error) {
+	newTaskID := ids.NewTaskID()
 	p := task.NewTask(newTaskID, cmd.Name)
 	if err := s.taskRepo.Save(ctx, p); err != nil {
 		return "", err

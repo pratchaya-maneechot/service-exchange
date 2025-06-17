@@ -1,4 +1,4 @@
-package shared
+package ids
 
 import "github.com/pratchaya-maneechot/service-exchange/apps/tasks/pkg/util"
 
