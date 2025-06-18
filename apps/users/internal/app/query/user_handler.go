@@ -12,14 +12,14 @@ type userQueryHandler struct {
 	userRepo user.UserRepository
 }
 
-// HandleGetUserIdentityVerification implements UserQueryHandler.
-func (h *userQueryHandler) HandleGetUserIdentityVerification(query GetUserIdentityVerificationQuery) (*IdentityVerificationDTO, error) {
-	panic("unimplemented")
-}
-
 // NewUserQueryHandler creates a new UserQueryHandler.
 func NewUserQueryHandler(userRepo user.UserRepository) UserQueryHandler {
 	return &userQueryHandler{userRepo: userRepo}
+}
+
+// HandleGetUserIdentityVerification implements UserQueryHandler.
+func (h *userQueryHandler) HandleGetUserIdentityVerification(query GetUserIdentityVerificationQuery) (*IdentityVerificationDTO, error) {
+	panic("unimplemented")
 }
 
 // HandleGetUserProfile handles the query to retrieve a user's profile.

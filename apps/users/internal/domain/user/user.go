@@ -37,10 +37,6 @@ type User struct {
 // NewUser creates a new User aggregate.
 // This is the factory method for creating User objects, ensuring initial invariants.
 func NewUser(userID ids.UserID, lineUserID string, email string, passwordHash string) (*User, error) {
-	if lineUserID == "" && email == "" {
-		return nil, ErrMissingLineIDOrEmail // A custom error, defined elsewhere (e.g., in errors.go)
-	}
-
 	now := time.Now()
 	user := &User{
 		ID:                    userID,
@@ -68,14 +64,16 @@ func (u *User) IsVerified() bool {
 }
 
 // UpdateProfile updates the user's profile details.
-func (u *User) UpdateProfile(displayName, firstName, lastName, bio, avatarURL, phoneNumber, address string, preferences map[string]any) {
-	u.Profile.DisplayName = displayName
-	u.Profile.FirstName = &firstName
-	u.Profile.LastName = &lastName
-	u.Profile.Bio = &bio
-	u.Profile.AvatarURL = &avatarURL
-	u.Profile.PhoneNumber = &phoneNumber
-	u.Profile.Address = &address
+func (u *User) UpdateProfile(displayName, firstName, lastName, bio, avatarURL, phoneNumber, address *string, preferences map[string]any) {
+	if displayName != nil {
+		u.Profile.DisplayName = *displayName
+	}
+	u.Profile.FirstName = firstName
+	u.Profile.LastName = lastName
+	u.Profile.Bio = bio
+	u.Profile.AvatarURL = avatarURL
+	u.Profile.PhoneNumber = phoneNumber
+	u.Profile.Address = address
 	// For preferences, you might need more sophisticated merging logic if it's JSONB
 	// For simplicity here, we're just assigning.
 	// u.Profile.Preferences = preferences // Needs to be handled carefully with JSONB

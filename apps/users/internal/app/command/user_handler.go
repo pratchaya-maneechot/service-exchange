@@ -15,6 +15,15 @@ type userCommandHandler struct {
 	// eventProducer message.UserEventProducer // Infrastructure layer dependency for publishing events
 }
 
+// NewUserCommandHandler creates a new UserCommandHandler.
+func NewUserCommandHandler(
+	userRepo user.UserRepository,
+) UserCommandHandler {
+	return &userCommandHandler{
+		userRepo: userRepo,
+	}
+}
+
 // HandleLineLogin implements UserCommandHandler.
 func (h *userCommandHandler) HandleLineLogin(cmd LineLoginCommand) (ids.UserID, string, int, error) {
 	panic("unimplemented")
@@ -38,13 +47,4 @@ func (h *userCommandHandler) HandleUpdateUserProfile(cmd UpdateUserProfileComman
 // HandleUserLogin implements UserCommandHandler.
 func (h *userCommandHandler) HandleUserLogin(cmd UserLoginCommand) (string, int, error) {
 	panic("unimplemented")
-}
-
-// NewUserCommandHandler creates a new UserCommandHandler.
-func NewUserCommandHandler(
-	userRepo user.UserRepository,
-) UserCommandHandler {
-	return &userCommandHandler{
-		userRepo: userRepo,
-	}
 }
