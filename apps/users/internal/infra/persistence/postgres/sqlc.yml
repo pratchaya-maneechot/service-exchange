@@ -1,0 +1,18 @@
+version: '2'
+sql:
+  - engine: 'postgresql'
+    queries:
+      - 'queries/user/write.sql'       
+      - 'queries/user/read.sql'       
+      - 'queries/role/write.sql'       
+      - 'queries/role/read.sql'       
+      - 'queries/identity_verification/write.sql'
+      - 'queries/identity_verification/read.sql'
+    schema: 'migrations'
+    gen:
+      go:
+        package: 'db'
+        out: 'generated'
+        sql_package: 'pgx/v5'
+        emit_pointers_for_null_types: true # Important for LastLoginAt and other nullable fields
+        # emit_json_tags: true # Optional: if you want JSON tags on generated structs

@@ -4,7 +4,7 @@ import (
 	"time"
 
 	"github.com/pratchaya-maneechot/service-exchange/apps/users/internal/domain/shared/ids"
-	"github.com/pratchaya-maneechot/service-exchange/apps/users/pkg/utils/arrays"
+	"github.com/pratchaya-maneechot/service-exchange/apps/users/pkg/utils"
 )
 
 // UserStatus defines the status of a user.
@@ -58,7 +58,7 @@ func NewUser(userID ids.UserID, lineUserID string, email string, passwordHash st
 }
 
 func (u *User) IsVerified() bool {
-	return arrays.Some(u.identityVerifications, func(idv IdentityVerification) bool {
+	return utils.ArraySome(u.identityVerifications, func(idv IdentityVerification) bool {
 		return idv.VerifiedAt != nil
 	})
 }

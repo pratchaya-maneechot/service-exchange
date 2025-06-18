@@ -5,7 +5,8 @@ import (
 	"github.com/pratchaya-maneechot/service-exchange/apps/users/internal/config"
 	"github.com/pratchaya-maneechot/service-exchange/apps/users/internal/domain/user"
 	"github.com/pratchaya-maneechot/service-exchange/apps/users/internal/infra/observability/metrics"
-	repository "github.com/pratchaya-maneechot/service-exchange/apps/users/internal/infra/persistence/inmemory/repositories"
+	"github.com/pratchaya-maneechot/service-exchange/apps/users/internal/infra/persistence/postgres"
+	"github.com/pratchaya-maneechot/service-exchange/apps/users/internal/infra/persistence/postgres/repositories"
 )
 
 type Repository struct {
@@ -13,10 +14,10 @@ type Repository struct {
 }
 
 func ProvideRepository(
-	tr user.UserRepository,
+	ur user.UserRepository,
 ) *Repository {
 	return &Repository{
-		User: tr,
+		User: ur,
 	}
 }
 
@@ -40,7 +41,8 @@ func NewInfraModule(
 }
 
 var InfraModuleSet = wire.NewSet(
-	repository.NewUserRepository,
+	postgres.NewDBConn,
+	repositories.NewPostgresUserRepository,
 	ProvideRepository,
 	ProvideMetricServer,
 	NewInfraModule,

@@ -43,7 +43,7 @@ func (i *impl) Save(ctx context.Context, user *user.User) error {
 	panic("unimplemented")
 }
 
-func NewUserRepository() user.UserRepository {
+func NewInMemoryUserRepository() user.UserRepository {
 	return &impl{
 		users: make(map[string]*user.User),
 		mutex: sync.RWMutex{},
