@@ -2,15 +2,14 @@ package handler
 
 import (
 	"context"
-	"errors"
 	"log/slog"
 
 	pb "github.com/pratchaya-maneechot/service-exchange/apps/users/api/proto/user"
 	"github.com/pratchaya-maneechot/service-exchange/apps/users/internal/app/command"
 	"github.com/pratchaya-maneechot/service-exchange/apps/users/internal/app/query"
 	"github.com/pratchaya-maneechot/service-exchange/apps/users/internal/domain/shared/ids"
+	"github.com/pratchaya-maneechot/service-exchange/apps/users/internal/grpc/utils"
 	"github.com/pratchaya-maneechot/service-exchange/apps/users/pkg/bus"
-	errs "github.com/pratchaya-maneechot/service-exchange/apps/users/pkg/errors"
 	"google.golang.org/grpc"
 	"google.golang.org/grpc/codes"
 	"google.golang.org/grpc/status"
@@ -36,26 +35,7 @@ func RegisUserGRPCHandler(
 	pb.RegisterUserServiceServer(gs, server)
 }
 
-// --- Helper for Error Mapping ---
-func mapErrorToGRPCCode(err error) error {
-	if err == nil {
-		return nil
-	}
-	if errors.Is(err, errs.ErrNotFound) {
-		return status.Errorf(codes.NotFound, "%s", err.Error())
-	}
-	if errors.Is(err, errs.ErrValidation) || errors.Is(err, errs.ErrInvalidArgument) {
-		return status.Errorf(codes.InvalidArgument, "%s", err.Error())
-	}
-	if errors.Is(err, errs.ErrAlreadyExists) {
-		return status.Errorf(codes.AlreadyExists, "%s", err.Error())
-	}
-	// Add other error mappings as needed (e.g., Unauthorized, Forbidden)
-	return status.Errorf(codes.Internal, "internal server error: %v", err)
-}
-
 // --- Command Handlers ---
-
 func (h *UserGRPCHandler) RegisterUser(ctx context.Context, req *pb.RegisterUserRequest) (*pb.RegisterUserResponse, error) {
 	cmd := command.RegisterUserCommand{
 		LineUserID:  req.GetLineUserId(),
@@ -68,7 +48,7 @@ func (h *UserGRPCHandler) RegisterUser(ctx context.Context, req *pb.RegisterUser
 	result, err := h.commandBus.Dispatch(ctx, cmd)
 	if err != nil {
 		h.logger.Error("Failed to dispatch RegisterUserCommand", "error", err)
-		return nil, mapErrorToGRPCCode(err)
+		return nil, utils.MapErrorToGRPCCode(err)
 	}
 
 	// Type assertion for the result from the bus
@@ -97,7 +77,7 @@ func (h *UserGRPCHandler) UserLogin(ctx context.Context, req *pb.UserLoginReques
 	result, err := h.commandBus.Dispatch(ctx, cmd)
 	if err != nil {
 		h.logger.Error("Failed to dispatch UserLoginCommand", "error", err)
-		return nil, mapErrorToGRPCCode(err)
+		return nil, utils.MapErrorToGRPCCode(err)
 	}
 
 	res, ok := result.(struct {
@@ -123,7 +103,7 @@ func (h *UserGRPCHandler) LineLogin(ctx context.Context, req *pb.LineLoginReques
 	result, err := h.commandBus.Dispatch(ctx, cmd)
 	if err != nil {
 		h.logger.Error("Failed to dispatch LineLoginCommand", "error", err)
-		return nil, mapErrorToGRPCCode(err)
+		return nil, utils.MapErrorToGRPCCode(err)
 	}
 
 	res, ok := result.(struct {
@@ -146,20 +126,20 @@ func (h *UserGRPCHandler) UpdateUserProfile(ctx context.Context, req *pb.UpdateU
 	userID := ids.UserID(req.GetUserId())
 	cmd := command.UpdateUserProfileCommand{
 		UserID:      userID,
-		DisplayName: GetValuePointer(req.GetDisplayName()),
-		FirstName:   GetValuePointer(req.GetFirstName()),
-		LastName:    GetValuePointer(req.GetLastName()),
-		Bio:         GetValuePointer(req.GetBio()),
-		AvatarURL:   GetValuePointer(req.GetAvatarUrl()),
-		PhoneNumber: GetValuePointer(req.GetPhoneNumber()),
-		Address:     GetValuePointer(req.GetAddress()),
-		Preferences: ToStringInterfaceMap(req.GetPreferences()),
+		DisplayName: utils.GetValuePointer(req.GetDisplayName()),
+		FirstName:   utils.GetValuePointer(req.GetFirstName()),
+		LastName:    utils.GetValuePointer(req.GetLastName()),
+		Bio:         utils.GetValuePointer(req.GetBio()),
+		AvatarURL:   utils.GetValuePointer(req.GetAvatarUrl()),
+		PhoneNumber: utils.GetValuePointer(req.GetPhoneNumber()),
+		Address:     utils.GetValuePointer(req.GetAddress()),
+		Preferences: utils.ToStringInterfaceMap(req.GetPreferences()),
 	}
 
 	_, err := h.commandBus.Dispatch(ctx, cmd)
 	if err != nil {
 		h.logger.Error("Failed to dispatch UpdateUserProfileCommand", "error", err)
-		return nil, mapErrorToGRPCCode(err)
+		return nil, utils.MapErrorToGRPCCode(err)
 	}
 
 	return &emptypb.Empty{}, nil
@@ -178,14 +158,13 @@ func (h *UserGRPCHandler) SubmitIdentityVerification(ctx context.Context, req *p
 	_, err := h.commandBus.Dispatch(ctx, cmd)
 	if err != nil {
 		h.logger.Error("Failed to dispatch SubmitIdentityVerificationCommand", "error", err)
-		return nil, mapErrorToGRPCCode(err)
+		return nil, utils.MapErrorToGRPCCode(err)
 	}
 
 	return &emptypb.Empty{}, nil
 }
 
 // --- Query Handlers ---
-
 func (h *UserGRPCHandler) GetUserProfile(ctx context.Context, req *pb.GetUserProfileRequest) (*pb.UserProfileDTO, error) {
 	userID := ids.UserID(req.GetUserId())
 	qry := query.GetUserProfileQuery{
@@ -195,7 +174,7 @@ func (h *UserGRPCHandler) GetUserProfile(ctx context.Context, req *pb.GetUserPro
 	result, err := h.queryBus.Dispatch(ctx, qry)
 	if err != nil {
 		h.logger.Error("Failed to dispatch GetUserProfileQuery", "error", err)
-		return nil, mapErrorToGRPCCode(err)
+		return nil, utils.MapErrorToGRPCCode(err)
 	}
 
 	internalDTO, ok := result.(*query.UserProfileDTO)
@@ -215,7 +194,7 @@ func (h *UserGRPCHandler) GetUserIdentityVerification(ctx context.Context, req *
 	result, err := h.queryBus.Dispatch(ctx, qry)
 	if err != nil {
 		h.logger.Error("Failed to dispatch GetUserIdentityVerificationQuery", "error", err)
-		return nil, mapErrorToGRPCCode(err)
+		return nil, utils.MapErrorToGRPCCode(err)
 	}
 
 	internalDTO, ok := result.(*query.IdentityVerificationDTO)

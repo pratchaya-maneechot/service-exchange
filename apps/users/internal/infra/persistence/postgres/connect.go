@@ -2,7 +2,8 @@ package postgres
 
 import (
 	"context"
-	"log"
+	"fmt"
+	"log/slog"
 	"time"
 
 	"github.com/jackc/pgx/v5"
@@ -10,26 +11,28 @@ import (
 	"github.com/pratchaya-maneechot/service-exchange/apps/users/internal/config"
 )
 
-func NewDBConn(cfg *config.Config) *pgxpool.Pool {
+func NewDBConn(cfg *config.Config, log *slog.Logger) (*pgxpool.Pool, error) {
 	connStr := cfg.Database.URL
 	pgxConfig, err := pgxpool.ParseConfig(connStr)
 	if err != nil {
-		log.Fatalf("Failed to parse database connection string: %v", err)
+		return nil, fmt.Errorf("failed to parse database connection string: %w", err)
 	}
+
 	pgxConfig.MaxConns = int32(cfg.Database.MaxOpenConns)
 	pgxConfig.MaxConnLifetime = cfg.Database.ConnMaxLifetime
 	pgxConfig.MaxConnIdleTime = cfg.Database.ConnMaxIdleTime
 	pgxConfig.HealthCheckPeriod = cfg.Database.HealthCheckPeriod
+
 	pgxConfig.BeforeAcquire = func(ctx context.Context, c *pgx.Conn) bool {
-		log.Printf("DB: Acquiring connection: %p", c)
+		log.Debug("DB: Acquiring connection", "conn_ptr", fmt.Sprintf("%p", c))
 		return true
 	}
 	pgxConfig.AfterRelease = func(c *pgx.Conn) bool {
-		log.Printf("DB: Releasing connection: %p", c)
+		log.Debug("DB: Releasing connection", "conn_ptr", fmt.Sprintf("%p", c))
 		return true
 	}
 	pgxConfig.BeforeClose = func(c *pgx.Conn) {
-		log.Printf("DB: Closing connection: %p", c)
+		log.Debug("DB: Closing connection", "conn_ptr", fmt.Sprintf("%p", c))
 	}
 
 	ctx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
@@ -37,15 +40,14 @@ func NewDBConn(cfg *config.Config) *pgxpool.Pool {
 
 	pool, err := pgxpool.NewWithConfig(ctx, pgxConfig)
 	if err != nil {
-		log.Fatalf("Unable to create connection pool: %v", err)
+		return nil, fmt.Errorf("unable to create connection pool: %w", err)
 	}
 
-	err = pool.Ping(ctx)
-	if err != nil {
+	if err := pool.Ping(ctx); err != nil {
 		pool.Close()
-		log.Fatalf("Failed to ping database: %v", err)
+		return nil, fmt.Errorf("failed to ping database: %w", err)
 	}
 
-	log.Println("Successfully connected and pinged database!")
-	return pool
+	log.Info("Successfully connected and pinged database!")
+	return pool, nil
 }

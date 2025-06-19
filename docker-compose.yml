@@ -2,7 +2,7 @@ services:
   db:
     image: postgres:16 # Or postgres:15, postgres:14
     environment:
-      POSTGRES_DB: reservation
+      POSTGRES_DB: postgres
       POSTGRES_USER: root
       POSTGRES_PASSWORD: Hl7FudwaSNzOhhioo0GxlmmMD0LM+I8StQIqJCZ1TPg
     ports:

@@ -1,117 +1,78 @@
-# Makefile
-# Libs Require
-# `brew install sqlc` - for generate sql type
-# `brew install golang-migrate` - for migrate table
-
-# Available services
+# Makefile - Simple & Maintainable
 SERVICES := users tasks
-
-# Default service for single-service commands
 SERVICE ?= users
-
-# Name for new migrations, if creating one
 NAME ?= default_migration
 
-# Generic targets that work for any service
+# Database config
+DB_URL = postgres://root:Hl7FudwaSNzOhhioo0GxlmmMD0LM+I8StQIqJCZ1TPg@localhost:5432
+
+.PHONY: help $(SERVICES)
+
+# Service-specific targets
 %-dev:
+	@echo "Starting $* service..."
 	@go run ./apps/$*/cmd/api/main.go
 
 %-generate:
-	@echo "Running generate scripts for $*..."
-	@sh ./apps/$*/scripts/generate-proto.sh
-	@cd ./apps/$* && sh ./scripts/generate-wire.sh
-	@cd ./apps/$*/internal/infra/persistence/postgres && sqlc generate
+	@echo "Generating $* code..."
+	@[ -f ./apps/$*/scripts/generate-proto.sh ] && sh ./apps/$*/scripts/generate-proto.sh || true
+	@[ -f ./apps/$*/scripts/generate-wire.sh ] && cd ./apps/$* && sh ./scripts/generate-wire.sh || true
+	@[ -d ./apps/$*/internal/infra/persistence/postgres ] && cd ./apps/$*/internal/infra/persistence/postgres && sqlc generate || true
 
 %-build-image:
-	@docker build -t $*-service:dev -f apps/$*/deploy/docker/Dockerfile .
-
-%-minikube-build-image:
-	@echo "Setting up Minikube Docker environment for $*..."
-	@eval "$$(minikube docker-env)" && $(MAKE) $*-build-image
-
-%-minikube-deploy:
-	@kubectl apply -k apps/$*/deploy/k8s/overlays/dev/
-
-%-minikube-destroy:
-	@kubectl delete -k apps/$*/deploy/k8s/overlays/dev/
+	@echo "Building $* image..."
+	@docker build -t $*-service:latest -f apps/$*/deploy/docker/Dockerfile .
 
 %-migrate-create:
-	@echo "Creating new migration for $* with name $(NAME)..."
+	@echo "Creating migration $(NAME) for $*..."
 	@migrate create -ext sql -dir ./apps/$*/internal/infra/persistence/postgres/migrations -seq $(NAME)
 
 %-migrate-up:
-	@echo "Running migrations for $*..."
-	@migrate -path ./apps/$*/internal/infra/persistence/postgres -database "postgres://root:Hl7FudwaSNzOhhioo0GxlmmMD0LM+I8StQIqJCZ1TPg=@localhost:5432/reservation?sslmode=disable" up
+	@echo "Running $* migrations..."
+	@migrate -path ./apps/$*/internal/infra/persistence/postgres/migrations -database "$(DB_URL)/$*?sslmode=disable" up
 
-# Convenience targets for all services
-.PHONY: dev generate build-image minikube-build-image minikube-deploy minikube-destroy migrate-create migrate-up
+%-k8s-deploy:
+	@echo "Deploying $* to k8s..."
+	@kubectl apply -k apps/$*/deploy/k8s/overlays/dev/
 
-dev:
-	@echo "Available services: $(SERVICES)"
-	@echo "Usage: make SERVICE-dev (e.g., make users-dev)"
+%-k8s-destroy:
+	@echo "Removing $* from k8s..."
+	@kubectl delete -k apps/$*/deploy/k8s/overlays/dev/
 
+# Bulk operations
 generate:
-	@for service in $(SERVICES); do \
-		echo "Generating for $$service..."; \
-		$(MAKE) $$service-generate; \
-	done
+	@for s in $(SERVICES); do $(MAKE) $$s-generate; done
 
-migrate-create:
-	@echo "Please specify a service (e.g., make users-migrate-create NAME=add_users_table)."
-	@exit 1 # Exit if called without a specific service
+build-images:
+	@for s in $(SERVICES); do $(MAKE) $$s-build-image; done
 
 migrate-up:
-	@for service in $(SERVICES); do \
-		echo "Running migrations for $$service..."; \
-		$(MAKE) $$service-migrate-up; \
-	done
+	@for s in $(SERVICES); do $(MAKE) $$s-migrate-up; done
 
-build-image:
-	@for service in $(SERVICES); do \
-		echo "Building image for $$service..."; \
-		$(MAKE) $$service-build-image; \
-	done
+k8s-deploy:
+	@for s in $(SERVICES); do $(MAKE) $$s-k8s-deploy; done
 
-minikube-build-image:
-	@for service in $(SERVICES); do \
-		echo "Building Minikube image for $$service..."; \
-		$(MAKE) $$service-minikube-build-image; \
-	done
+k8s-destroy:
+	@for s in $(SERVICES); do $(MAKE) $$s-k8s-destroy; done
 
-minikube-deploy:
-	@for service in $(SERVICES); do \
-		echo "Deploying $$service to Minikube..."; \
-		$(MAKE) $$service-minikube-deploy; \
-	done
+# Utility
+dev:
+	@echo "Available: $(SERVICES)"
+	@echo "Usage: make <service>-dev"
 
-minikube-destroy:
-	@for service in $(SERVICES); do \
-		echo "Destroying $$service from Minikube..."; \
-		$(MAKE) $$service-minikube-destroy; \
-	done
-
-# Help target
 help:
-	@echo "Available targets:"
-	@echo "  {SERVICE}-dev                 - Run service in development mode"
-	@echo "  {SERVICE}-generate            - Run generate scripts for service (proto, wire, sqlc)"
-	@echo "  {SERVICE}-migrate-create NAME={name} - Create a new migration file for service with a custom name."
-	@echo "  {SERVICE}-migrate-up          - Run database migrations for service (up)"
-	@echo "  {SERVICE}-build-image         - Build Docker image for service"
-	@echo "  {SERVICE}-minikube-build-image - Build Docker image in Minikube environment"
-	@echo "  {SERVICE}-minikube-deploy     - Deploy service to Minikube"
-	@echo "  {SERVICE}-minikube-destroy    - Remove service from Minikube"
+	@echo "Services: $(SERVICES)"
 	@echo ""
-	@echo "  generate                    - Run generate for all services (proto, wire)"
-	@echo "  migrate-up                  - Run database migrations for all services (up)"
-	@echo "  sqlc-generate               - Run sqlc generate for all services"
-	@echo "  build-image                 - Build images for all services"
-	@echo "  minikube-build-image        - Build Minikube images for all services"
-	@echo "  minikube-deploy             - Deploy all services to Minikube"
-	@echo "  minikube-destroy            - Remove all services from Minikube"
+	@echo "Commands:"
+	@echo "  <service>-dev           - Run service"
+	@echo "  <service>-generate      - Generate code"
+	@echo "  <service>-build-image   - Build Docker image"
+	@echo "  <service>-migrate-create NAME=<name> - Create migration"
+	@echo "  <service>-migrate-up    - Run migrations (make sure the database "<service>" already exists)"
+	@echo "  <service>-k8s-deploy    - Deploy to k8s"
+	@echo "  <service>-k8s-destroy   - Remove from k8s"
 	@echo ""
-	@echo "Available services: $(SERVICES)"
-	@echo "Examples:"
-	@echo "  make users-dev"
-	@echo "  make tasks-generate"
-	@echo "  make build-image"
+	@echo "Bulk:"
+	@echo "  generate, build-images, migrate-up, k8s-deploy, k8s-destroy"
+	@echo ""
+	@echo "Examples: make users-dev, make generate"

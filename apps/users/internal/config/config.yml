@@ -19,7 +19,7 @@ server:
   max_recv_msg_size: 4194304  # 4MB
   max_send_msg_size: 4194304  # 4MB
 database:
-  url: "postgres://user:password@localhost:5432/users?sslmode=disable"
+  url: "postgres://root:Hl7FudwaSNzOhhioo0GxlmmMD0LM+I8StQIqJCZ1TPg@localhost:5432/users?sslmode=disable"
   max_open_conns: 25
   max_idle_conns: 5
   conn_max_lifetime: 5m
