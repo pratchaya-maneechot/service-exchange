@@ -7,15 +7,15 @@ import (
 	"github.com/pratchaya-maneechot/service-exchange/apps/users/internal/config"
 )
 
-func New(cfg config.LoggingConfig) *slog.Logger {
+func New(cfg *config.Config) *slog.Logger {
 	var handler slog.Handler
 
 	opts := &slog.HandlerOptions{
-		Level:     parseLevel(cfg.Level),
-		AddSource: true,
+		Level:     parseLevel(cfg.Logging.Level),
+		AddSource: !cfg.IsDevelopment(),
 	}
 
-	switch cfg.Format {
+	switch cfg.Logging.Format {
 	case "json":
 		handler = slog.NewJSONHandler(os.Stdout, opts)
 	default:

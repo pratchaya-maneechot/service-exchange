@@ -4,6 +4,7 @@
 package internal
 
 import (
+	"context"
 	"log/slog"
 
 	"github.com/google/wire"
@@ -22,11 +23,7 @@ func ProvideConfig() (*config.Config, error) {
 }
 
 func ProvideLogger(cfg *config.Config) *slog.Logger {
-	return logger.New(cfg.Logging)
-}
-
-func ProvideShutdownHandler(logger *slog.Logger, cfg *config.Config) *ShutdownHandler {
-	return NewShutdownHandler(logger, cfg.Server.ShutdownTimeout)
+	return logger.New(cfg)
 }
 
 type Internal struct {
@@ -37,6 +34,7 @@ type Internal struct {
 	App      *app.AppModule
 	Bus      *bus.Bus
 	Shutdown *ShutdownHandler
+	BContext context.Context
 }
 
 func NewInternal(
@@ -47,16 +45,12 @@ func NewInternal(
 	bus *bus.Bus,
 	sd *ShutdownHandler,
 	lg *slog.Logger,
+	bCtx context.Context,
 ) *Internal {
 
-	bus.CommandBus.RegisterHandler(command.LineLoginCommand{}, app.UserCommand.HandleLineLogin)
-	bus.CommandBus.RegisterHandler(command.RegisterUserCommand{}, app.UserCommand.HandleRegisterUser)
-	bus.CommandBus.RegisterHandler(command.SubmitIdentityVerificationCommand{}, app.UserCommand.HandleSubmitIdentityVerification)
-	bus.CommandBus.RegisterHandler(command.UpdateUserProfileCommand{}, app.UserCommand.HandleUpdateUserProfile)
-	bus.CommandBus.RegisterHandler(command.UserLoginCommand{}, app.UserCommand.HandleUserLogin)
+	bus.CommandBus.RegisterHandler(command.RegisterUserCommand{}, app.RegisterUserCommandHandler)
 
-	bus.QueryBus.RegisterHandler(query.GetUserIdentityVerificationQuery{}, app.UserQuery.HandleGetUserIdentityVerification)
-	bus.QueryBus.RegisterHandler(query.GetUserProfileQuery{}, app.UserQuery.HandleGetUserProfile)
+	bus.QueryBus.RegisterHandler(query.GetUserProfileQuery{}, app.GetUserProfileQueryHandler)
 
 	return &Internal{
 		Config:   cf,
@@ -66,14 +60,15 @@ func NewInternal(
 		Bus:      bus,
 		Shutdown: sd,
 		Logger:   lg,
+		BContext: bCtx,
 	}
 }
 
-func InitializeApp() (*Internal, error) {
+func InitializeApp(ctx context.Context) (*Internal, error) {
 	wire.Build(
 		ProvideConfig,
 		ProvideLogger,
-		ProvideShutdownHandler,
+		NewShutdownHandler,
 		app.AppModuleSet,
 		bus.BusModuleSet,
 		grpc.NewServer,

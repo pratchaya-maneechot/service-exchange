@@ -8,6 +8,7 @@ import (
 	"github.com/pratchaya-maneechot/service-exchange/apps/users/internal/app/command"
 	"github.com/pratchaya-maneechot/service-exchange/apps/users/internal/app/query"
 	"github.com/pratchaya-maneechot/service-exchange/apps/users/internal/domain/shared/ids"
+	"github.com/pratchaya-maneechot/service-exchange/apps/users/internal/domain/user"
 	"github.com/pratchaya-maneechot/service-exchange/apps/users/internal/grpc/utils"
 	"github.com/pratchaya-maneechot/service-exchange/apps/users/pkg/bus"
 	"google.golang.org/grpc"
@@ -35,7 +36,6 @@ func RegisUserGRPCHandler(
 	pb.RegisterUserServiceServer(gs, server)
 }
 
-// --- Command Handlers ---
 func (h *UserGRPCHandler) RegisterUser(ctx context.Context, req *pb.RegisterUserRequest) (*pb.RegisterUserResponse, error) {
 	cmd := command.RegisterUserCommand{
 		LineUserID:  req.GetLineUserId(),
@@ -48,78 +48,27 @@ func (h *UserGRPCHandler) RegisterUser(ctx context.Context, req *pb.RegisterUser
 	result, err := h.commandBus.Dispatch(ctx, cmd)
 	if err != nil {
 		h.logger.Error("Failed to dispatch RegisterUserCommand", "error", err)
-		return nil, utils.MapErrorToGRPCCode(err)
+		return nil, NewGRPCErrCode(err)
 	}
 
-	// Type assertion for the result from the bus
-	res, ok := result.(struct {
-		UserID    string
-		JWT       string
-		ExpiresIn int
-	})
+	usr, ok := result.(*user.User)
 	if !ok {
 		return nil, status.Errorf(codes.Internal, "internal server error: unexpected response from RegisterUserCommand handler")
 	}
 
 	return &pb.RegisterUserResponse{
-		UserId:           res.UserID,
-		JwtToken:         res.JWT,
-		ExpiresInSeconds: int32(res.ExpiresIn),
+		UserId:           string(usr.ID),
+		JwtToken:         string(usr.ID),
+		ExpiresInSeconds: int32(0),
 	}, nil
 }
 
 func (h *UserGRPCHandler) UserLogin(ctx context.Context, req *pb.UserLoginRequest) (*pb.UserLoginResponse, error) {
-	cmd := command.UserLoginCommand{
-		Email:    req.GetEmail(),
-		Password: req.GetPassword(),
-	}
-
-	result, err := h.commandBus.Dispatch(ctx, cmd)
-	if err != nil {
-		h.logger.Error("Failed to dispatch UserLoginCommand", "error", err)
-		return nil, utils.MapErrorToGRPCCode(err)
-	}
-
-	res, ok := result.(struct {
-		JWT       string
-		ExpiresIn int
-	})
-	if !ok {
-		return nil, status.Errorf(codes.Internal, "internal server error: unexpected response from UserLoginCommand handler")
-	}
-
-	return &pb.UserLoginResponse{
-		JwtToken:         res.JWT,
-		ExpiresInSeconds: int32(res.ExpiresIn),
-	}, nil
+	panic("un implement")
 }
 
 func (h *UserGRPCHandler) LineLogin(ctx context.Context, req *pb.LineLoginRequest) (*pb.LineLoginResponse, error) {
-	cmd := command.LineLoginCommand{
-		LineUserID: req.GetLineUserId(),
-		IDToken:    req.GetIdToken(),
-	}
-
-	result, err := h.commandBus.Dispatch(ctx, cmd)
-	if err != nil {
-		h.logger.Error("Failed to dispatch LineLoginCommand", "error", err)
-		return nil, utils.MapErrorToGRPCCode(err)
-	}
-
-	res, ok := result.(struct {
-		UserID    string
-		JWT       string
-		ExpiresIn int
-	})
-	if !ok {
-		return nil, status.Errorf(codes.Internal, "internal server error: unexpected response from LineLoginCommand handler")
-	}
-
-	return &pb.LineLoginResponse{
-		UserId:           res.UserID,
-		JwtToken:         res.JWT,
-		ExpiresInSeconds: int32(res.ExpiresIn),
-	}, nil
+	panic("un implement")
 }
 
 func (h *UserGRPCHandler) UpdateUserProfile(ctx context.Context, req *pb.UpdateUserProfileRequest) (*emptypb.Empty, error) {
@@ -139,29 +88,14 @@ func (h *UserGRPCHandler) UpdateUserProfile(ctx context.Context, req *pb.UpdateU
 	_, err := h.commandBus.Dispatch(ctx, cmd)
 	if err != nil {
 		h.logger.Error("Failed to dispatch UpdateUserProfileCommand", "error", err)
-		return nil, utils.MapErrorToGRPCCode(err)
+		return nil, NewGRPCErrCode(err)
 	}
 
 	return &emptypb.Empty{}, nil
 }
 
 func (h *UserGRPCHandler) SubmitIdentityVerification(ctx context.Context, req *pb.SubmitIdentityVerificationRequest) (*emptypb.Empty, error) {
-	userID := ids.UserID(req.GetUserId())
-
-	cmd := command.SubmitIdentityVerificationCommand{
-		UserID:         userID,
-		DocumentType:   MapProtoDocumentTypeToDomain(req.GetDocumentType()),
-		DocumentURLs:   req.GetDocumentUrls(),
-		DocumentNumber: req.GetDocumentNumber().GetValue(),
-	}
-
-	_, err := h.commandBus.Dispatch(ctx, cmd)
-	if err != nil {
-		h.logger.Error("Failed to dispatch SubmitIdentityVerificationCommand", "error", err)
-		return nil, utils.MapErrorToGRPCCode(err)
-	}
-
-	return &emptypb.Empty{}, nil
+	panic("un implement")
 }
 
 // --- Query Handlers ---
@@ -173,8 +107,7 @@ func (h *UserGRPCHandler) GetUserProfile(ctx context.Context, req *pb.GetUserPro
 
 	result, err := h.queryBus.Dispatch(ctx, qry)
 	if err != nil {
-		h.logger.Error("Failed to dispatch GetUserProfileQuery", "error", err)
-		return nil, utils.MapErrorToGRPCCode(err)
+		return nil, NewGRPCErrCode(err)
 	}
 
 	internalDTO, ok := result.(*query.UserProfileDTO)
@@ -186,21 +119,5 @@ func (h *UserGRPCHandler) GetUserProfile(ctx context.Context, req *pb.GetUserPro
 }
 
 func (h *UserGRPCHandler) GetUserIdentityVerification(ctx context.Context, req *pb.GetUserIdentityVerificationRequest) (*pb.IdentityVerificationDTO, error) {
-	userID := ids.UserID(req.GetUserId())
-	qry := query.GetUserIdentityVerificationQuery{
-		UserID: userID,
-	}
-
-	result, err := h.queryBus.Dispatch(ctx, qry)
-	if err != nil {
-		h.logger.Error("Failed to dispatch GetUserIdentityVerificationQuery", "error", err)
-		return nil, utils.MapErrorToGRPCCode(err)
-	}
-
-	internalDTO, ok := result.(*query.IdentityVerificationDTO)
-	if !ok {
-		return nil, status.Errorf(codes.Internal, "internal server error: unexpected response from GetUserIdentityVerificationQuery handler")
-	}
-
-	return h.MapIdentityVerificationDTOToProto(internalDTO), nil
+	panic("un implement")
 }

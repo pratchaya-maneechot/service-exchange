@@ -22,23 +22,24 @@ type Config struct {
 }
 
 type ServerConfig struct {
-	Address               string        `mapstructure:"address" validate:"required"`
-	Port                  int           `mapstructure:"port" validate:"required,min=1,max=65535"`
-	ReadTimeout           time.Duration `mapstructure:"read_timeout" validate:"gte=0"`
-	WriteTimeout          time.Duration `mapstructure:"write_timeout" validate:"gte=0"`
-	ShutdownTimeout       time.Duration `mapstructure:"shutdown_timeout" validate:"gte=0"`
-	MaxConnections        int           `mapstructure:"max_connections" validate:"gte=0"`
-	MaxConcurrentStreams  uint32        `mapstructure:"max_concurrent_streams" validate:"gte=0"`
-	EnableReflection      bool          `mapstructure:"enable_reflection"`
-	EnableHealthCheck     bool          `mapstructure:"enable_health_check"`
-	ConnectionTimeout     time.Duration `mapstructure:"connection_timeout" validate:"gte=0"`
-	KeepaliveTime         time.Duration `mapstructure:"keepalive_time" validate:"gte=0"`
-	KeepaliveTimeout      time.Duration `mapstructure:"keepalive_timeout" validate:"gte=0"`
-	MaxConnectionIdle     time.Duration `mapstructure:"max_connection_idle" validate:"gte=0"`
-	MaxConnectionAge      time.Duration `mapstructure:"max_connection_age" validate:"gte=0"`
-	MaxConnectionAgeGrace time.Duration `mapstructure:"max_connection_age_grace" validate:"gte=0"`
-	MaxRecvMsgSize        int           `mapstructure:"max_recv_msg_size" validate:"gte=0"`
-	MaxSendMsgSize        int           `mapstructure:"max_send_msg_size" validate:"gte=0"`
+	Address                 string        `mapstructure:"address" validate:"required"`
+	Port                    int           `mapstructure:"port" validate:"required,min=1,max=65535"`
+	CacheRefreshIntervalDay int           `mapstructure:"cache_refresh_interval_day" validate:"required,min=1,max=365"`
+	ReadTimeout             time.Duration `mapstructure:"read_timeout" validate:"gte=0"`
+	WriteTimeout            time.Duration `mapstructure:"write_timeout" validate:"gte=0"`
+	ShutdownTimeout         time.Duration `mapstructure:"shutdown_timeout" validate:"gte=0"`
+	MaxConnections          int           `mapstructure:"max_connections" validate:"gte=0"`
+	MaxConcurrentStreams    uint32        `mapstructure:"max_concurrent_streams" validate:"gte=0"`
+	EnableReflection        bool          `mapstructure:"enable_reflection"`
+	EnableHealthCheck       bool          `mapstructure:"enable_health_check"`
+	ConnectionTimeout       time.Duration `mapstructure:"connection_timeout" validate:"gte=0"`
+	KeepaliveTime           time.Duration `mapstructure:"keepalive_time" validate:"gte=0"`
+	KeepaliveTimeout        time.Duration `mapstructure:"keepalive_timeout" validate:"gte=0"`
+	MaxConnectionIdle       time.Duration `mapstructure:"max_connection_idle" validate:"gte=0"`
+	MaxConnectionAge        time.Duration `mapstructure:"max_connection_age" validate:"gte=0"`
+	MaxConnectionAgeGrace   time.Duration `mapstructure:"max_connection_age_grace" validate:"gte=0"`
+	MaxRecvMsgSize          int           `mapstructure:"max_recv_msg_size" validate:"gte=0"`
+	MaxSendMsgSize          int           `mapstructure:"max_send_msg_size" validate:"gte=0"`
 }
 
 type DatabaseConfig struct {

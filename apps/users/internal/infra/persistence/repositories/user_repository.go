@@ -5,8 +5,10 @@ import (
 	"errors"
 	"fmt"
 
+	"github.com/pratchaya-maneechot/service-exchange/apps/users/internal/domain/role"
 	"github.com/pratchaya-maneechot/service-exchange/apps/users/internal/domain/shared/ids"
 	"github.com/pratchaya-maneechot/service-exchange/apps/users/internal/domain/user" // Domain models
+	"github.com/pratchaya-maneechot/service-exchange/apps/users/internal/infra/persistence/postgres"
 	db "github.com/pratchaya-maneechot/service-exchange/apps/users/internal/infra/persistence/postgres/generated"
 	"github.com/pratchaya-maneechot/service-exchange/apps/users/pkg/utils"
 
@@ -18,21 +20,21 @@ import (
 )
 
 // PostgresUserRepository implements the user.UserRepository interface.
-type repository struct {
+type userRepository struct {
 	db   *db.Queries
 	pool *pgxpool.Pool // Keep pool for transaction management
 }
 
 // NewPostgresUserRepository creates a new PostgresUserRepository.
-func NewPostgresUserRepository(pool *pgxpool.Pool) user.UserRepository {
-	return &repository{
-		db:   db.New(pool),
-		pool: pool,
+func NewPostgresUserRepository(dbPool *postgres.DBPool) user.UserRepository {
+	return &userRepository{
+		db:   db.New(dbPool.Pool),
+		pool: dbPool.Pool,
 	}
 }
 
 // FindByID retrieves a User aggregate by its ID, using sqlc generated query with JOINs.
-func (r *repository) FindByID(ctx context.Context, id ids.UserID) (*user.User, error) {
+func (r *userRepository) FindByID(ctx context.Context, id ids.UserID) (*user.User, error) {
 	raw, err := r.db.FindUserByID(ctx, encodeUID(uuid.MustParse(string(id))))
 	if err != nil {
 		if errors.Is(err, pgx.ErrNoRows) {
@@ -49,7 +51,7 @@ func (r *repository) FindByID(ctx context.Context, id ids.UserID) (*user.User, e
 		ID:           ids.UserID(userID),
 		LineUserID:   raw.LineUserID,
 		Email:        *raw.Email,
-		PasswordHash: "",
+		PasswordHash: *raw.PasswordHash,
 		Status:       user.UserStatus(raw.Status),
 		CreatedAt:    raw.CreatedAt.Time,
 		UpdatedAt:    raw.UpdatedAt.Time,
@@ -69,7 +71,7 @@ func (r *repository) FindByID(ctx context.Context, id ids.UserID) (*user.User, e
 }
 
 // FindByLineUserID retrieves a User aggregate by their LINE User ID, using sqlc generated query with JOINs.
-func (r *repository) FindByLineUserID(ctx context.Context, lineUserID string) (*user.User, error) {
+func (r *userRepository) FindByLineUserID(ctx context.Context, lineUserID string) (*user.User, error) {
 	raw, err := r.db.FindUserByLineUserID(ctx, lineUserID)
 	if err != nil {
 		if errors.Is(err, pgx.ErrNoRows) {
@@ -108,7 +110,7 @@ func (r *repository) FindByLineUserID(ctx context.Context, lineUserID string) (*
 
 // Save persists a User aggregate. It handles creation/update for user, profile, and related entities.
 // This method orchestrates multiple sqlc-generated inserts/updates within a transaction.
-func (r *repository) Save(ctx context.Context, u *user.User) error {
+func (r *userRepository) Save(ctx context.Context, u *user.User) error {
 	tx, err := r.pool.Begin(ctx)
 	if err != nil {
 		return fmt.Errorf("failed to begin transaction: %w", err)
@@ -129,6 +131,7 @@ func (r *repository) Save(ctx context.Context, u *user.User) error {
 			Email:        &u.Email,
 			PasswordHash: &u.PasswordHash,
 			Status:       string(u.Status),
+			LastLoginAt:  pgtype.Timestamptz{Time: *u.LastLoginAt},
 		}
 		if _, err = qtx.UpdateUser(ctx, input); err != nil {
 			return fmt.Errorf("failed to update user: %w", err)
@@ -196,11 +199,28 @@ func (r *repository) Save(ctx context.Context, u *user.User) error {
 		}
 	}
 
+	if len(u.Roles) > 0 {
+		for _, role := range u.Roles {
+			if err = qtx.DeleteUserRole(ctx, db.DeleteUserRoleParams{
+				UserID: userID,
+				RoleID: int32(*role.ID),
+			}); err != nil {
+				return fmt.Errorf("failed to delete user role: %w", err)
+			}
+			if _, err = qtx.CreateUserRole(ctx, db.CreateUserRoleParams{
+				UserID: userID,
+				RoleID: int32(*role.ID),
+			}); err != nil {
+				return fmt.Errorf("failed to create user role: %w", err)
+			}
+		}
+	}
+
 	return tx.Commit(ctx)
 }
 
 // ExistsByLineUserID checks if a user with the given LINE User ID already exists.
-func (r *repository) ExistsByLineUserID(ctx context.Context, lineUserID string) (bool, error) {
+func (r *userRepository) ExistsByLineUserID(ctx context.Context, lineUserID string) (bool, error) {
 	exists, err := r.db.UserExistsByLineUserID(ctx, lineUserID)
 	if err != nil {
 		return false, fmt.Errorf("failed to check user existence by line user ID: %w", err)
@@ -209,7 +229,7 @@ func (r *repository) ExistsByLineUserID(ctx context.Context, lineUserID string) 
 }
 
 // AddRoleToUser adds a role to an existing user.
-func (r *repository) AddRoleToUser(ctx context.Context, usrId ids.UserID, roleID uint) error {
+func (r *userRepository) CreateUserRole(ctx context.Context, usrId ids.UserID, roleID uint) error {
 	userID := encodeUID(uuid.MustParse(string(usrId)))
 	// Check if role exists
 	roleExists, err := r.db.RoleExistsByID(ctx, int32(roleID))
@@ -217,7 +237,7 @@ func (r *repository) AddRoleToUser(ctx context.Context, usrId ids.UserID, roleID
 		return fmt.Errorf("failed to check role existence: %w", err)
 	}
 	if !roleExists {
-		return user.ErrRoleNotFound
+		return role.ErrRoleNotFound
 	}
 
 	alreadyHasRole, err := r.db.UserRoleExists(ctx, db.UserRoleExistsParams{
@@ -231,7 +251,7 @@ func (r *repository) AddRoleToUser(ctx context.Context, usrId ids.UserID, roleID
 		return user.ErrRoleAlreadyAssigned
 	}
 
-	_, err = r.db.AddRoleToUser(ctx, db.AddRoleToUserParams{
+	_, err = r.db.CreateUserRole(ctx, db.CreateUserRoleParams{
 		UserID: userID,
 		RoleID: int32(roleID),
 	})
@@ -242,16 +262,20 @@ func (r *repository) AddRoleToUser(ctx context.Context, usrId ids.UserID, roleID
 }
 
 // GetRoleByID retrieves a Role by its ID.
-func (r *repository) GetRoleByID(ctx context.Context, roleID uint) (*user.Role, error) {
+func (r *userRepository) GetRoleByID(ctx context.Context, roleID uint) (*role.Role, error) {
 	raw, err := r.db.FindRoleByID(ctx, int32(roleID))
 	if err != nil {
 		if errors.Is(err, pgx.ErrNoRows) {
-			return nil, user.ErrRoleNotFound
+			return nil, role.ErrRoleNotFound
 		}
 		return nil, fmt.Errorf("failed to get role by ID: %w", err)
 	}
-	domainRole := user.NewRole(uint(raw.ID), user.RoleName(raw.Name), *raw.Description)
-	return &domainRole, nil
+	id := uint(raw.ID)
+	return &role.Role{
+		ID:          &id,
+		Name:        role.RoleName(raw.Name),
+		Description: *raw.Description,
+	}, nil
 }
 
 // Utility functions (from your example)

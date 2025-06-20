@@ -1,4 +1,4 @@
-package user
+package role
 
 type RoleName string
 
@@ -9,13 +9,13 @@ const (
 )
 
 type Role struct {
-	ID          uint // Internal ID, managed by system (e.g., from a static lookup table)
+	ID          *uint // Internal ID, managed by system (e.g., from a static lookup table)
 	Name        RoleName
 	Description string
 }
 
 // NewRole creates a new Role instance.
-func NewRole(id uint, name RoleName, description string) Role {
+func NewRole(id *uint, name RoleName, description string) Role {
 	return Role{
 		ID:          id,
 		Name:        name,

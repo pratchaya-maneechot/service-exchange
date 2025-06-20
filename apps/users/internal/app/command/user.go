@@ -46,13 +46,3 @@ type SubmitIdentityVerificationCommand struct {
 	DocumentURLs   []string          `json:"documentUrls" validate:"required,min=1,dive,url"` // Array of URLs to uploaded docs
 	DocumentNumber string            `json:"documentNumber,omitempty"`                        // Optional, but good to include for national ID
 }
-
-// UserCommandHandler defines the interface for handling user-related commands.
-// Each method should represent a distinct business operation.
-type UserCommandHandler interface {
-	HandleRegisterUser(cmd RegisterUserCommand) (ids.UserID, error)
-	HandleUserLogin(cmd UserLoginCommand) (string, int, error)             // Returns JWT token and expiry
-	HandleLineLogin(cmd LineLoginCommand) (ids.UserID, string, int, error) // Returns UserID, JWT token and expiry
-	HandleUpdateUserProfile(cmd UpdateUserProfileCommand) error
-	HandleSubmitIdentityVerification(cmd SubmitIdentityVerificationCommand) error
-}

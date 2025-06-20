@@ -49,9 +49,3 @@ type IdentityVerificationDTO struct {
 	VerifiedAt      *time.Time              `json:"verifiedAt,omitempty"`
 	RejectionReason *string                 `json:"rejectionReason,omitempty"`
 }
-
-// UserQueryHandler defines the interface for handling user-related queries.
-type UserQueryHandler interface {
-	HandleGetUserProfile(query GetUserProfileQuery) (*UserProfileDTO, error)
-	HandleGetUserIdentityVerification(query GetUserIdentityVerificationQuery) (*IdentityVerificationDTO, error)
-}

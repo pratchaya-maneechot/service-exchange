@@ -11,7 +11,11 @@ import (
 	"github.com/pratchaya-maneechot/service-exchange/apps/users/internal/config"
 )
 
-func NewDBConn(cfg *config.Config, log *slog.Logger) (*pgxpool.Pool, error) {
+type DBPool struct {
+	Pool *pgxpool.Pool
+}
+
+func NewDBConn(cfg *config.Config, log *slog.Logger) (*DBPool, error) {
 	connStr := cfg.Database.URL
 	pgxConfig, err := pgxpool.ParseConfig(connStr)
 	if err != nil {
@@ -49,5 +53,13 @@ func NewDBConn(cfg *config.Config, log *slog.Logger) (*pgxpool.Pool, error) {
 	}
 
 	log.Info("Successfully connected and pinged database!")
-	return pool, nil
+	return &DBPool{
+		Pool: pool,
+	}, nil
+}
+
+func (d *DBPool) Close() {
+	if d.Pool != nil {
+		d.Pool.Close()
+	}
 }

@@ -2,58 +2,66 @@ package internal
 
 import (
 	"context"
+	"fmt"
 	"log/slog"
-	"os"
-	"os/signal"
-	"syscall"
-	"time"
+
+	"github.com/pratchaya-maneechot/service-exchange/apps/users/internal/domain/role"
+	"github.com/pratchaya-maneechot/service-exchange/apps/users/internal/infra/persistence/postgres"
 )
 
 type ShutdownHandler struct {
-	logger          *slog.Logger
-	ShutdownTimeout time.Duration
+	logger *slog.Logger
+
+	dbPool       *postgres.DBPool
+	roleCacheSvc *role.RoleCacheService
 }
 
-func NewShutdownHandler(logger *slog.Logger, timeout time.Duration) *ShutdownHandler {
+func NewShutdownHandler(
+	logger *slog.Logger,
+	dbPool *postgres.DBPool,
+	roleCacheSvc *role.RoleCacheService,
+) *ShutdownHandler {
 	return &ShutdownHandler{
-		logger:          logger,
-		ShutdownTimeout: timeout,
+		logger:       logger,
+		dbPool:       dbPool,
+		roleCacheSvc: roleCacheSvc,
 	}
 }
 
-func (h *ShutdownHandler) HandleSignals(cancel context.CancelFunc) {
-	sigCh := make(chan os.Signal, 1)
-	signal.Notify(sigCh, syscall.SIGINT, syscall.SIGTERM, syscall.SIGHUP)
-
-	sig := <-sigCh
-	h.logger.Info("received shutdown signal", "signal", sig.String())
-
-	shutdownCtx, shutdownCancel := context.WithTimeout(context.Background(), h.ShutdownTimeout)
-	defer shutdownCancel()
+func (sh *ShutdownHandler) Handle(shutdownCtx context.Context) error {
+	errChan := make(chan error, 1)
 
 	go func() {
-		ticker := time.NewTicker(5 * time.Second)
-		defer ticker.Stop()
+		sh.logger.Info("Starting graceful shutdown of application components...")
+		var shutdownErrors []error
 
-		remaining := h.ShutdownTimeout
-		for {
-			select {
-			case <-shutdownCtx.Done():
-				return
-			case <-ticker.C:
-				remaining -= 5 * time.Second
-				if remaining > 0 {
-					h.logger.Info("shutdown in progress", "remaining", remaining.String())
-				}
-			}
+		if sh.dbPool != nil {
+			sh.logger.Info("Closing database connections...")
+			sh.dbPool.Close()
+			sh.logger.Info("Database connections closed.")
+		}
+
+		if sh.roleCacheSvc != nil {
+			// sh.roleCacheSvc.Stop()
+			//  if err := sh.roleCacheSvc.Stop(ctx); err != nil {
+			//     shutdownErrors = append(shutdownErrors, fmt.Errorf("failed to stop role cache service: %w", err))
+			// } else {
+			//     sh.logger.Info("Role cache manager stopped.")
+			// }
+			sh.logger.Info("Role cache manager stopping (if it has background goroutines)...")
+		}
+
+		if len(shutdownErrors) > 0 {
+			errChan <- fmt.Errorf("errors during shutdown: %v", shutdownErrors)
+		} else {
+			errChan <- nil
 		}
 	}()
 
-	cancel()
-
-	<-shutdownCtx.Done()
-	if shutdownCtx.Err() == context.DeadlineExceeded {
-		h.logger.Warn("shutdown timeout exceeded, forcing exit")
-		os.Exit(1)
+	select {
+	case <-shutdownCtx.Done():
+		return fmt.Errorf("graceful shutdown timed out or cancelled: %w", shutdownCtx.Err())
+	case err := <-errChan:
+		return err
 	}
 }

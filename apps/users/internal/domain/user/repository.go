@@ -3,6 +3,7 @@ package user
 import (
 	"context"
 
+	"github.com/pratchaya-maneechot/service-exchange/apps/users/internal/domain/role"
 	"github.com/pratchaya-maneechot/service-exchange/apps/users/internal/domain/shared/ids"
 )
 
@@ -21,10 +22,10 @@ type UserRepository interface {
 	// ExistsByLineUserID checks if a user with the given LINE User ID already exists.
 	ExistsByLineUserID(ctx context.Context, lineUserID string) (bool, error)
 
-	// AddRoleToUser adds a role to an existing user.
+	// CreateUserRole adds a role to an existing user.
 	// This might be a separate method if roles are managed outside the main User aggregate persistence.
-	AddRoleToUser(ctx context.Context, userID ids.UserID, roleID uint) error
+	CreateUserRole(ctx context.Context, userID ids.UserID, roleID uint) error
 
 	// GetRoleByID retrieves a Role by its ID.
-	GetRoleByID(ctx context.Context, roleID uint) (*Role, error)
+	GetRoleByID(ctx context.Context, roleID uint) (*role.Role, error)
 }
