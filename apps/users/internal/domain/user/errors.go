@@ -1,16 +1,16 @@
 package user
 
-import "errors"
+import errs "github.com/pratchaya-maneechot/service-exchange/apps/users/pkg/errors"
 
 var (
-	ErrUserNotFound                        = errors.New("user not found")
-	ErrLineUserIDAlreadyExists             = errors.New("LINE user ID already exists")
-	ErrEmailAlreadyExists                  = errors.New("email already exists")
-	ErrLineUserAlreadyExists               = errors.New("line user already exists")
-	ErrMissingLineIDOrEmail                = errors.New("either LINE user ID or email must be provided")
-	ErrInvalidCredentials                  = errors.New("invalid credentials")
-	ErrRoleAlreadyAssigned                 = errors.New("role already assigned to user")
-	ErrInvalidVerificationStatusTransition = errors.New("invalid identity verification status transition")
-	ErrMissingDocumentURLs                 = errors.New("document URLs are required for identity verification")
-	ErrMissingDocumentType                 = errors.New("document type is required for identity verification")
+	ErrUserNotFound                        = errs.New(errs.CodeNotFound, "user not found")
+	ErrLineUserIDAlreadyExists             = errs.New(errs.CodeAlreadyExists, "LINE user ID already exists")
+	ErrEmailAlreadyExists                  = errs.New(errs.CodeAlreadyExists, "email already exists")
+	ErrLineUserAlreadyExists               = errs.New(errs.CodeAlreadyExists, "line user already exists")
+	ErrMissingLineIDOrEmail                = errs.New(errs.CodeInvalidArgument, "either LINE user ID or email must be provided")
+	ErrInvalidCredentials                  = errs.New(errs.CodeUnauthorized, "invalid credentials")
+	ErrRoleAlreadyAssigned                 = errs.New(errs.CodeAlreadyExists, "role already assigned to user")
+	ErrInvalidVerificationStatusTransition = errs.New(errs.CodeInvalidArgument, "invalid identity verification status transition")
+	ErrMissingDocumentURLs                 = errs.New(errs.CodeInvalidArgument, "document URLs are required for identity verification")
+	ErrMissingDocumentType                 = errs.New(errs.CodeInvalidArgument, "document type is required for identity verification")
 )

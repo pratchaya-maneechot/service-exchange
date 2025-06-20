@@ -11,6 +11,7 @@ import (
 	"github.com/pratchaya-maneechot/service-exchange/apps/users/internal/domain/user"
 	"github.com/pratchaya-maneechot/service-exchange/apps/users/internal/grpc/utils"
 	"github.com/pratchaya-maneechot/service-exchange/apps/users/pkg/bus"
+	"github.com/pratchaya-maneechot/service-exchange/apps/users/pkg/grpcutil"
 	"google.golang.org/grpc"
 	"google.golang.org/grpc/codes"
 	"google.golang.org/grpc/status"
@@ -48,7 +49,7 @@ func (h *UserGRPCHandler) RegisterUser(ctx context.Context, req *pb.RegisterUser
 	result, err := h.commandBus.Dispatch(ctx, cmd)
 	if err != nil {
 		h.logger.Error("Failed to dispatch RegisterUserCommand", "error", err)
-		return nil, NewGRPCErrCode(err)
+		return nil, grpcutil.NewGRPCErrCode(err)
 	}
 
 	usr, ok := result.(*user.User)
@@ -88,7 +89,7 @@ func (h *UserGRPCHandler) UpdateUserProfile(ctx context.Context, req *pb.UpdateU
 	_, err := h.commandBus.Dispatch(ctx, cmd)
 	if err != nil {
 		h.logger.Error("Failed to dispatch UpdateUserProfileCommand", "error", err)
-		return nil, NewGRPCErrCode(err)
+		return nil, grpcutil.NewGRPCErrCode(err)
 	}
 
 	return &emptypb.Empty{}, nil
@@ -107,7 +108,7 @@ func (h *UserGRPCHandler) GetUserProfile(ctx context.Context, req *pb.GetUserPro
 
 	result, err := h.queryBus.Dispatch(ctx, qry)
 	if err != nil {
-		return nil, NewGRPCErrCode(err)
+		return nil, grpcutil.NewGRPCErrCode(err)
 	}
 
 	internalDTO, ok := result.(*query.UserProfileDTO)
