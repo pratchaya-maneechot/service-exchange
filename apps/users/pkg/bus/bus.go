@@ -1,6 +1,8 @@
 package bus
 
-import "github.com/google/wire"
+import (
+	"github.com/google/wire"
+)
 
 type Bus struct {
 	CommandBus CommandBus

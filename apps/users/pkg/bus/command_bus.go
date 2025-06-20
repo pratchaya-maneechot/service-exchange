@@ -27,12 +27,12 @@ func (b *commandBus) RegisterHandler(cmdType Command, handler any) error {
 	handlerReflectType := reflect.TypeOf(handler)
 
 	if handler == nil {
-		return fmt.Errorf("command handler for type %s cannot be nil", cmdReflectType.String())
+		panic(fmt.Errorf("command handler for type %s cannot be nil", cmdReflectType.String()))
 	}
 
 	// Check if a handler is already registered for this command type
 	if duplicated := b.handlers.Store(cmdReflectType, handler); duplicated {
-		return ErrCommandAlreadyRegistered{CommandType: cmdReflectType}
+		panic(ErrCommandAlreadyRegistered{CommandType: cmdReflectType})
 	}
 
 	// Now perform stricter validation of the handler's type
@@ -40,11 +40,11 @@ func (b *commandBus) RegisterHandler(cmdType Command, handler any) error {
 	handleMethod, found := handlerReflectType.MethodByName("Handle")
 	if !found {
 		b.handlers.Delete(cmdReflectType) // Remove partially registered handler
-		return ErrInvalidCommandHandler{
+		panic(ErrInvalidCommandHandler{
 			HandlerType: handlerReflectType,
 			CommandType: cmdReflectType,
 			Reason:      "handler does not have a 'Handle' method",
-		}
+		})
 	}
 
 	// Expected signature: func(ctx context.Context, cmd C) error
@@ -54,47 +54,47 @@ func (b *commandBus) RegisterHandler(cmdType Command, handler any) error {
 		cmdReflectType, // cmd
 	}
 	expectedOut := []reflect.Type{
+		nil,                                  // Placeholder for generic result type R
 		reflect.TypeOf((*error)(nil)).Elem(), // error
 	}
-
 	// Check input parameters
 	if handleMethod.Type.NumIn() != len(expectedIn)+1 { // +1 for the receiver
 		b.handlers.Delete(cmdReflectType)
-		return ErrInvalidCommandHandler{
+		panic(ErrInvalidCommandHandler{
 			HandlerType: handlerReflectType,
 			CommandType: cmdReflectType,
 			Reason:      fmt.Sprintf("Handle method has %d input parameters, expected %d (excluding receiver)", handleMethod.Type.NumIn()-1, len(expectedIn)),
-		}
+		})
 	}
 	for i, expected := range expectedIn {
 		// handleMethod.Type.In(0) is the receiver itself
 		if handleMethod.Type.In(i+1) != expected {
 			b.handlers.Delete(cmdReflectType)
-			return ErrInvalidCommandHandler{
+			panic(ErrInvalidCommandHandler{
 				HandlerType: handlerReflectType,
 				CommandType: cmdReflectType,
 				Reason:      fmt.Sprintf("Handle method parameter %d type mismatch: expected %s, got %s", i+1, expected.String(), handleMethod.Type.In(i+1).String()),
-			}
+			})
 		}
 	}
 
 	// Check output parameters
 	if handleMethod.Type.NumOut() != len(expectedOut) {
 		b.handlers.Delete(cmdReflectType)
-		return ErrInvalidCommandHandler{
+		panic(ErrInvalidCommandHandler{
 			HandlerType: handlerReflectType,
 			CommandType: cmdReflectType,
 			Reason:      fmt.Sprintf("Handle method has %d output parameters, expected %d", handleMethod.Type.NumOut(), len(expectedOut)),
-		}
+		})
 	}
 	for i, expected := range expectedOut {
-		if handleMethod.Type.Out(i) != expected {
+		if expected != nil && handleMethod.Type.Out(i) != expected {
 			b.handlers.Delete(cmdReflectType)
-			return ErrInvalidCommandHandler{
+			panic(ErrInvalidCommandHandler{
 				HandlerType: handlerReflectType,
 				CommandType: cmdReflectType,
 				Reason:      fmt.Sprintf("Handle method return parameter %d type mismatch: expected %s, got %s", i+1, expected.String(), handleMethod.Type.Out(i).String()),
-			}
+			})
 		}
 	}
 
@@ -107,15 +107,14 @@ func (b *commandBus) Dispatch(ctx context.Context, cmd Command) (any, error) {
 
 	handlerUntyped, ok := b.handlers.Load(cmdType)
 	if !ok {
-		return nil, ErrNoQueryHandlerFound{QueryType: cmdType}
+		return nil, ErrNoCommandHandlerFound{CommandType: cmdType}
 	}
-
 	handlerVal := reflect.ValueOf(handlerUntyped)
 	handleMethod := handlerVal.MethodByName("Handle")
 	if !handleMethod.IsValid() {
-		return nil, ErrInvalidQueryHandler{
+		return nil, ErrInvalidCommandHandler{
 			HandlerType: reflect.TypeOf(handlerUntyped),
-			QueryType:   cmdType,
+			CommandType: cmdType,
 		}
 	}
 

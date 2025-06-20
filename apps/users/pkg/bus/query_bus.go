@@ -31,17 +31,17 @@ func (b *queryBus) RegisterHandler(queryType Query, handler any) error {
 	}
 
 	if duplicated := b.handlers.Store(queryReflectType, handler); duplicated {
-		return ErrQueryAlreadyRegistered{QueryType: queryReflectType}
+		panic(ErrQueryAlreadyRegistered{QueryType: queryReflectType})
 	}
 
 	handleMethod, found := handlerReflectType.MethodByName("Handle")
 	if !found {
 		b.handlers.Delete(queryReflectType)
-		return ErrInvalidQueryHandler{
+		panic(ErrInvalidQueryHandler{
 			HandlerType: handlerReflectType,
 			QueryType:   queryReflectType,
 			Reason:      "handler does not have a 'Handle' method",
-		}
+		})
 	}
 
 	// Method's signature (Input: receiver, ctx, query; Output: R, error)
@@ -57,41 +57,41 @@ func (b *queryBus) RegisterHandler(queryType Query, handler any) error {
 	// Check input parameters
 	if handleMethod.Type.NumIn() != len(expectedIn)+1 { // +1 for the receiver
 		b.handlers.Delete(queryReflectType)
-		return ErrInvalidQueryHandler{
+		panic(ErrInvalidQueryHandler{
 			HandlerType: handlerReflectType,
 			QueryType:   queryReflectType,
 			Reason:      fmt.Sprintf("Handle method has %d input parameters, expected %d (excluding receiver)", handleMethod.Type.NumIn()-1, len(expectedIn)),
-		}
+		})
 	}
 	for i, expected := range expectedIn {
 		if handleMethod.Type.In(i+1) != expected { // +1 for the receiver
 			b.handlers.Delete(queryReflectType)
-			return ErrInvalidQueryHandler{
+			panic(ErrInvalidQueryHandler{
 				HandlerType: handlerReflectType,
 				QueryType:   queryReflectType,
 				Reason:      fmt.Sprintf("Handle method parameter %d type mismatch: expected %s, got %s", i+1, expected.String(), handleMethod.Type.In(i+1).String()),
-			}
+			})
 		}
 	}
 
 	// Check output parameters
 	if handleMethod.Type.NumOut() != len(expectedOut) {
 		b.handlers.Delete(queryReflectType)
-		return ErrInvalidQueryHandler{
+		panic(ErrInvalidQueryHandler{
 			HandlerType: handlerReflectType,
 			QueryType:   queryReflectType,
 			Reason:      fmt.Sprintf("Handle method has %d output parameters, expected %d", handleMethod.Type.NumOut(), len(expectedOut)),
-		}
+		})
 	}
 	// For queries, the first return type (R) is generic, so we can't directly check its type against a concrete `expected` `reflect.Type`.
 	// We only ensure it exists and the second is `error`.
 	if handleMethod.Type.Out(1) != expectedOut[1] { // Check if the second return value is error
 		b.handlers.Delete(queryReflectType)
-		return ErrInvalidQueryHandler{
+		panic(ErrInvalidQueryHandler{
 			HandlerType: handlerReflectType,
 			QueryType:   queryReflectType,
 			Reason:      fmt.Sprintf("Handle method return parameter 2 type mismatch: expected %s, got %s", expectedOut[1].String(), handleMethod.Type.Out(1).String()),
-		}
+		})
 	}
 
 	return nil
