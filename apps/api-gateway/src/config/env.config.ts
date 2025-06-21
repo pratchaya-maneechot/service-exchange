@@ -4,7 +4,7 @@ import { join } from 'path';
 
 export const env = (): EnvConfig => ({
   app: {
-    port: toNumber(getOsEnv('PORT', '3000')),
+    port: toNumber(getOsEnv('PORT', '8080')),
     host: getOsEnv('HOST', '0.0.0.0'),
     nodeEnv: getOsEnv('NODE_ENV', 'development') as
       | 'production'

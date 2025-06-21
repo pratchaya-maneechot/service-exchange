@@ -68,7 +68,7 @@ help:
 	@echo "  <service>-generate      - Generate code"
 	@echo "  <service>-build-image   - Build Docker image"
 	@echo "  <service>-migrate-create NAME=<name> - Create migration"
-	@echo "  <service>-migrate-up    - Run migrations (make sure the database "<service>" already exists)"
+	@echo "  <service>-migrate-up    - Run migrations (make sure the database \"<service>\" already exists)"
 	@echo "  <service>-k8s-deploy    - Deploy to k8s"
 	@echo "  <service>-k8s-destroy   - Remove from k8s"
 	@echo ""
