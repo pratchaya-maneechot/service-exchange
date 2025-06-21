@@ -13,8 +13,27 @@ func GetValuePointer(sv *wrapperspb.StringValue) *string {
 	return &val
 }
 
-// ToStringInterfaceMap converts map<string, string> from proto to map[string]any
-func ToStringInterfaceMap(m map[string]string) map[string]any {
+func GetStringValue(v *string) *wrapperspb.StringValue {
+	if v == nil {
+		return nil
+	}
+	return wrapperspb.String(*v)
+}
+
+func GetInterfaceString(m map[string]any) map[string]string {
+	if m == nil {
+		return nil
+	}
+	res := make(map[string]string)
+	for k, v := range m {
+		if _v, ok := v.(string); ok {
+			res[k] = _v
+		}
+	}
+	return res
+}
+
+func GetStringInterface(m map[string]string) map[string]any {
 	if m == nil {
 		return nil
 	}

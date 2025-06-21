@@ -1,16 +1,14 @@
-package handler
+package mappers
 
 import (
 	pb "github.com/pratchaya-maneechot/service-exchange/apps/users/api/proto/user"
 	"github.com/pratchaya-maneechot/service-exchange/apps/users/internal/app/query"
 	"github.com/pratchaya-maneechot/service-exchange/apps/users/internal/domain/user"
+	"github.com/pratchaya-maneechot/service-exchange/apps/users/internal/grpc/utils"
 	"google.golang.org/protobuf/types/known/timestamppb"
 	"google.golang.org/protobuf/types/known/wrapperspb"
 )
 
-// --- Helper Functions for Mapping ---
-
-// MapProtoDocumentTypeToDomain maps Protobuf DocumentType enum to Domain DocumentType string.
 func MapProtoDocumentTypeToDomain(protoType pb.DocumentType) user.DocumentType {
 	switch protoType {
 	case pb.DocumentType_NATIONAL_ID:
@@ -24,7 +22,6 @@ func MapProtoDocumentTypeToDomain(protoType pb.DocumentType) user.DocumentType {
 	}
 }
 
-// MapDomainDocumentTypeToProto maps Domain DocumentType string to Protobuf DocumentType enum.
 func MapDomainDocumentTypeToProto(domainType user.DocumentType) pb.DocumentType {
 	switch domainType {
 	case user.DocumentTypeNationalID:
@@ -38,7 +35,6 @@ func MapDomainDocumentTypeToProto(domainType user.DocumentType) pb.DocumentType 
 	}
 }
 
-// MapDomainUserStatusToProto maps Domain UserStatus string to Protobuf UserStatus enum.
 func MapDomainUserStatusToProto(domainStatus user.UserStatus) pb.UserStatus {
 	switch domainStatus {
 	case user.UserStatusActive:
@@ -54,7 +50,6 @@ func MapDomainUserStatusToProto(domainStatus user.UserStatus) pb.UserStatus {
 	}
 }
 
-// MapDomainVerificationStatusToProto maps Domain VerificationStatus string to Protobuf VerificationStatus enum.
 func MapDomainVerificationStatusToProto(domainStatus user.VerificationStatus) pb.VerificationStatus {
 	switch domainStatus {
 	case user.VerificationStatusPending:
@@ -68,12 +63,14 @@ func MapDomainVerificationStatusToProto(domainStatus user.VerificationStatus) pb
 	}
 }
 
-// MapUserProfileDTOToProto maps an internal UserProfileDTO to a Protobuf UserProfileDTO.
-func (h *UserGRPCHandler) MapUserProfileDTOToProto(internalDTO *query.UserProfileDTO) *pb.UserProfileDTO {
+func MapUserProfileDTOToProto(internalDTO *query.UserProfileDTO) *pb.UserProfileDTO {
 	if internalDTO == nil {
 		return nil
 	}
-
+	var lastLoginAt *timestamppb.Timestamp
+	if internalDTO.LastLoginAt != nil {
+		lastLoginAt = timestamppb.New(*internalDTO.LastLoginAt)
+	}
 	protoDTO := &pb.UserProfileDTO{
 		UserId:      internalDTO.UserID,
 		LineUserId:  internalDTO.LineUserID,
@@ -82,50 +79,23 @@ func (h *UserGRPCHandler) MapUserProfileDTOToProto(internalDTO *query.UserProfil
 		Status:      MapDomainUserStatusToProto(internalDTO.Status),
 		IsVerified:  internalDTO.IsVerified,
 		CreatedAt:   timestamppb.New(internalDTO.CreatedAt),
+		LastLoginAt: lastLoginAt,
+		FirstName:   utils.GetStringValue(internalDTO.FirstName),
+		LastName:    utils.GetStringValue(internalDTO.LastName),
+		Bio:         utils.GetStringValue(internalDTO.Bio),
+		AvatarUrl:   utils.GetStringValue(internalDTO.AvatarURL),
+		PhoneNumber: utils.GetStringValue(internalDTO.PhoneNumber),
+		Address:     utils.GetStringValue(internalDTO.Address),
+		Preferences: utils.GetInterfaceString(internalDTO.Preferences),
+		Roles:       internalDTO.Roles,
 	}
-
-	if internalDTO.FirstName != nil {
-		protoDTO.FirstName = wrapperspb.String(*internalDTO.FirstName)
-	}
-	if internalDTO.LastName != nil {
-		protoDTO.LastName = wrapperspb.String(*internalDTO.LastName)
-	}
-	if internalDTO.Bio != nil {
-		protoDTO.Bio = wrapperspb.String(*internalDTO.Bio)
-	}
-	if internalDTO.AvatarURL != nil {
-		protoDTO.AvatarUrl = wrapperspb.String(*internalDTO.AvatarURL)
-	}
-	if internalDTO.PhoneNumber != nil {
-		protoDTO.PhoneNumber = wrapperspb.String(*internalDTO.PhoneNumber)
-	}
-	if internalDTO.Address != nil {
-		protoDTO.Address = wrapperspb.String(*internalDTO.Address)
-	}
-	if internalDTO.LastLoginAt != nil {
-		protoDTO.LastLoginAt = timestamppb.New(*internalDTO.LastLoginAt)
-	}
-
-	if internalDTO.Preferences != nil {
-		protoDTO.Preferences = make(map[string]string)
-		for k, v := range internalDTO.Preferences {
-			if strVal, ok := v.(string); ok { // Assuming preferences values are string for proto mapping
-				protoDTO.Preferences[k] = strVal
-			}
-		}
-	}
-
-	protoDTO.Roles = internalDTO.Roles // Roles are already []string
-
 	return protoDTO
 }
 
-// MapIdentityVerificationDTOToProto maps an internal IdentityVerificationDTO to a Protobuf IdentityVerificationDTO.
-func (h *UserGRPCHandler) MapIdentityVerificationDTOToProto(internalDTO *query.IdentityVerificationDTO) *pb.IdentityVerificationDTO {
+func MapIdentityVerificationDTOToProto(internalDTO *query.IdentityVerificationDTO) *pb.IdentityVerificationDTO {
 	if internalDTO == nil {
 		return nil
 	}
-
 	protoDTO := &pb.IdentityVerificationDTO{
 		Id:           internalDTO.ID,
 		UserId:       internalDTO.UserID,
@@ -134,13 +104,11 @@ func (h *UserGRPCHandler) MapIdentityVerificationDTOToProto(internalDTO *query.I
 		Status:       MapDomainVerificationStatusToProto(internalDTO.Status),
 		SubmittedAt:  timestamppb.New(internalDTO.SubmittedAt),
 	}
-
 	if internalDTO.VerifiedAt != nil {
 		protoDTO.VerifiedAt = timestamppb.New(*internalDTO.VerifiedAt)
 	}
 	if internalDTO.RejectionReason != nil {
 		protoDTO.RejectionReason = wrapperspb.String(*internalDTO.RejectionReason)
 	}
-
 	return protoDTO
 }

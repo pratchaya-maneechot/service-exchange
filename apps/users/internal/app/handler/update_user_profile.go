@@ -25,7 +25,6 @@ func (h *UpdateUserProfileCommandHandler) Handle(ctx context.Context, cmd comman
 	if err != nil {
 		return nil, err
 	}
-
 	domUser.UpdateProfile(
 		cmd.DisplayName,
 		cmd.FirstName,
@@ -36,11 +35,8 @@ func (h *UpdateUserProfileCommandHandler) Handle(ctx context.Context, cmd comman
 		cmd.Address,
 		cmd.Preferences,
 	)
-
-	err = h.userRepo.Save(ctx, domUser)
-	if err != nil {
+	if err = h.userRepo.Save(ctx, domUser); err != nil {
 		return nil, err
 	}
-
 	return domUser, nil
 }

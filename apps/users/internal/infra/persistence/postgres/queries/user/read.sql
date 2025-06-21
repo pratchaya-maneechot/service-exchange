@@ -27,8 +27,7 @@ SELECT EXISTS(SELECT 1 FROM profiles p WHERE p.user_id = $1);
 SELECT EXISTS(SELECT 1 FROM user_roles ur WHERE ur.user_id = $1 AND ur.role_id = $2);
 
 -- name: GetUserRoles :many
-SELECT
-    r.id, r.name, r.description
-FROM roles r
-JOIN user_roles ur ON r.id = ur.role_id
+SELECT r.id, r.name, r.description
+FROM user_roles ur
+JOIN roles r ON r.id = ur.role_id
 WHERE ur.user_id = $1;

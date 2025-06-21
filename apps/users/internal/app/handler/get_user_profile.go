@@ -4,7 +4,9 @@ import (
 	"context"
 
 	"github.com/pratchaya-maneechot/service-exchange/apps/users/internal/app/query"
+	"github.com/pratchaya-maneechot/service-exchange/apps/users/internal/domain/role"
 	"github.com/pratchaya-maneechot/service-exchange/apps/users/internal/domain/user"
+	"github.com/pratchaya-maneechot/service-exchange/apps/users/pkg/utils"
 )
 
 type GetUserProfileQueryHandler struct {
@@ -26,7 +28,6 @@ func (h *GetUserProfileQueryHandler) Handle(ctx context.Context, qry query.GetUs
 	if err != nil {
 		return nil, err
 	}
-
 	resp := &query.UserProfileDTO{
 		UserID:      string(u.ID),
 		LineUserID:  u.LineUserID,
@@ -43,7 +44,9 @@ func (h *GetUserProfileQueryHandler) Handle(ctx context.Context, qry query.GetUs
 		IsVerified:  u.IsVerified(),
 		LastLoginAt: u.LastLoginAt,
 		CreatedAt:   u.CreatedAt,
+		Roles: utils.ArrayMap(u.Roles, func(r role.Role) string {
+			return string(r.Name)
+		}),
 	}
-
 	return resp, nil
 }

@@ -1,4 +1,4 @@
-package handler
+package handlers
 
 import (
 	"context"
@@ -9,6 +9,7 @@ import (
 	"github.com/pratchaya-maneechot/service-exchange/apps/users/internal/app/query"
 	"github.com/pratchaya-maneechot/service-exchange/apps/users/internal/domain/shared/ids"
 	"github.com/pratchaya-maneechot/service-exchange/apps/users/internal/domain/user"
+	"github.com/pratchaya-maneechot/service-exchange/apps/users/internal/grpc/mappers"
 	"github.com/pratchaya-maneechot/service-exchange/apps/users/internal/grpc/utils"
 	"github.com/pratchaya-maneechot/service-exchange/apps/users/pkg/bus"
 	"github.com/pratchaya-maneechot/service-exchange/apps/users/pkg/grpcutil"
@@ -45,18 +46,15 @@ func (h *UserGRPCHandler) RegisterUser(ctx context.Context, req *pb.RegisterUser
 		DisplayName: req.GetDisplayName(),
 		AvatarURL:   req.GetAvatarUrl().GetValue(),
 	}
-
 	result, err := h.commandBus.Dispatch(ctx, cmd)
 	if err != nil {
 		h.logger.Error("Failed to dispatch RegisterUserCommand", "error", err)
 		return nil, grpcutil.NewGRPCErrCode(err)
 	}
-
 	usr, ok := result.(*user.User)
 	if !ok {
 		return nil, status.Errorf(codes.Internal, "internal server error: unexpected response from RegisterUserCommand handler")
 	}
-
 	return &pb.RegisterUserResponse{
 		UserId:           string(usr.ID),
 		JwtToken:         string(usr.ID),
@@ -83,15 +81,12 @@ func (h *UserGRPCHandler) UpdateUserProfile(ctx context.Context, req *pb.UpdateU
 		AvatarURL:   utils.GetValuePointer(req.GetAvatarUrl()),
 		PhoneNumber: utils.GetValuePointer(req.GetPhoneNumber()),
 		Address:     utils.GetValuePointer(req.GetAddress()),
-		Preferences: utils.ToStringInterfaceMap(req.GetPreferences()),
+		Preferences: utils.GetStringInterface(req.GetPreferences()),
 	}
-
-	_, err := h.commandBus.Dispatch(ctx, cmd)
-	if err != nil {
+	if _, err := h.commandBus.Dispatch(ctx, cmd); err != nil {
 		h.logger.Error("Failed to dispatch UpdateUserProfileCommand", "error", err)
 		return nil, grpcutil.NewGRPCErrCode(err)
 	}
-
 	return &emptypb.Empty{}, nil
 }
 
@@ -99,24 +94,20 @@ func (h *UserGRPCHandler) SubmitIdentityVerification(ctx context.Context, req *p
 	panic("un implement")
 }
 
-// --- Query Handlers ---
 func (h *UserGRPCHandler) GetUserProfile(ctx context.Context, req *pb.GetUserProfileRequest) (*pb.UserProfileDTO, error) {
 	userID := ids.UserID(req.GetUserId())
 	qry := query.GetUserProfileQuery{
 		UserID: userID,
 	}
-
 	result, err := h.queryBus.Dispatch(ctx, qry)
 	if err != nil {
 		return nil, grpcutil.NewGRPCErrCode(err)
 	}
-
 	internalDTO, ok := result.(*query.UserProfileDTO)
 	if !ok {
 		return nil, status.Errorf(codes.Internal, "internal server error: unexpected response from GetUserProfileQuery handler")
 	}
-
-	return h.MapUserProfileDTOToProto(internalDTO), nil
+	return mappers.MapUserProfileDTOToProto(internalDTO), nil
 }
 
 func (h *UserGRPCHandler) GetUserIdentityVerification(ctx context.Context, req *pb.GetUserIdentityVerificationRequest) (*pb.IdentityVerificationDTO, error) {

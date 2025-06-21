@@ -9,8 +9,8 @@ import (
 
 	"github.com/pkg/errors"
 	"github.com/pratchaya-maneechot/service-exchange/apps/users/internal/config"
+	"github.com/pratchaya-maneechot/service-exchange/apps/users/internal/grpc/handlers"
 	"github.com/pratchaya-maneechot/service-exchange/apps/users/internal/grpc/middleware"
-	user_handler "github.com/pratchaya-maneechot/service-exchange/apps/users/internal/grpc/user"
 	"github.com/pratchaya-maneechot/service-exchange/apps/users/pkg/bus"
 	"google.golang.org/grpc"
 	"google.golang.org/grpc/credentials"
@@ -75,7 +75,7 @@ func NewServer(
 
 	gRPCServer := grpc.NewServer(opts...)
 
-	user_handler.RegisUserGRPCHandler(gRPCServer, bus.CommandBus, bus.QueryBus, logger)
+	handlers.RegisUserGRPCHandler(gRPCServer, bus.CommandBus, bus.QueryBus, logger)
 
 	var healthServer *health.Server
 	if cfg.Server.EnableHealthCheck {

@@ -34,25 +34,19 @@ func (h *RegisterUserCommandHandler) Handle(ctx context.Context, cmd command.Reg
 	if existing {
 		return nil, user.ErrLineUserAlreadyExists
 	}
-
 	domUser, err := user.NewUser(ids.NewUserID(), cmd.LineUserID, cmd.Email, cmd.Password)
 	if err != nil {
 		return nil, err
 	}
-
 	defaultRole, err := h.roleCacheSvc.GetRoleByName(role.RoleNamePoster)
 	if err != nil {
 		return nil, err
 	}
-
-	err = domUser.AddRole(defaultRole)
-	if err != nil {
+	if err = domUser.AddRole(defaultRole); err != nil {
 		return nil, err
 	}
-	err = h.userRepo.Save(ctx, domUser)
-	if err != nil {
+	if err = h.userRepo.Save(ctx, domUser); err != nil {
 		return nil, err
 	}
-
 	return domUser, nil
 }

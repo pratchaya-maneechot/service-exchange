@@ -4,6 +4,7 @@ import (
 	"context"
 	"errors"
 	"fmt"
+	"time"
 
 	"github.com/pratchaya-maneechot/service-exchange/apps/users/internal/domain/role"
 	"github.com/pratchaya-maneechot/service-exchange/apps/users/internal/domain/shared/ids"
@@ -42,20 +43,46 @@ func (r *userRepository) FindByID(ctx context.Context, id ids.UserID) (*user.Use
 		}
 		return nil, fmt.Errorf("failed to query user full aggregate by ID: %w", err)
 	}
+
 	userID := ids.UserID(raw.ID.String())
+
 	preferencesJSON, err := utils.ByteToMap(raw.Preferences)
 	if err != nil {
-		return nil, fmt.Errorf("failed to marshal preferences to JSON: %w", err)
+		return nil, fmt.Errorf("failed to unmarshal preferences to JSON: %w", err)
 	}
+
+	uRoles, err := r.db.GetUserRoles(ctx, raw.ID)
+	if err != nil {
+		return nil, fmt.Errorf("failed to query get user role: %w", err)
+	}
+
+	var roles []role.Role
+	for _, ur := range uRoles {
+		idVal := uint(ur.ID)
+		roles = append(roles, role.Role{
+			ID:          &idVal,
+			Name:        role.RoleName(ur.Name),
+			Description: *ur.Description,
+		})
+	}
+
+	var lastLoginAt *time.Time
+	if raw.LastLoginAt.Valid {
+		lastLoginAt = &raw.LastLoginAt.Time
+	}
+
+	createdAt := raw.CreatedAt.Time
+	updatedAt := raw.UpdatedAt.Time
+
 	return &user.User{
-		ID:           ids.UserID(userID),
+		ID:           userID,
 		LineUserID:   raw.LineUserID,
 		Email:        *raw.Email,
 		PasswordHash: *raw.PasswordHash,
 		Status:       user.UserStatus(raw.Status),
-		CreatedAt:    raw.CreatedAt.Time,
-		UpdatedAt:    raw.UpdatedAt.Time,
-		LastLoginAt:  &raw.LastLoginAt.Time,
+		CreatedAt:    createdAt,
+		UpdatedAt:    updatedAt,
+		LastLoginAt:  lastLoginAt,
 		Profile: user.Profile{
 			UserID:      userID,
 			DisplayName: *raw.DisplayName,
@@ -67,7 +94,8 @@ func (r *userRepository) FindByID(ctx context.Context, id ids.UserID) (*user.Use
 			Address:     raw.Address,
 			Preferences: *preferencesJSON,
 		},
-	}, err
+		Roles: roles,
+	}, nil
 }
 
 // FindByLineUserID retrieves a User aggregate by their LINE User ID, using sqlc generated query with JOINs.
@@ -199,20 +227,18 @@ func (r *userRepository) Save(ctx context.Context, u *user.User) error {
 		}
 	}
 
-	if len(u.Roles) > 0 {
-		for _, role := range u.Roles {
-			if err = qtx.DeleteUserRole(ctx, db.DeleteUserRoleParams{
-				UserID: userID,
-				RoleID: int32(*role.ID),
-			}); err != nil {
-				return fmt.Errorf("failed to delete user role: %w", err)
-			}
-			if _, err = qtx.CreateUserRole(ctx, db.CreateUserRoleParams{
-				UserID: userID,
-				RoleID: int32(*role.ID),
-			}); err != nil {
-				return fmt.Errorf("failed to create user role: %w", err)
-			}
+	for _, role := range u.Roles {
+		if err = qtx.DeleteUserRole(ctx, db.DeleteUserRoleParams{
+			UserID: userID,
+			RoleID: int32(*role.ID),
+		}); err != nil {
+			return fmt.Errorf("failed to delete user role: %w", err)
+		}
+		if _, err = qtx.CreateUserRole(ctx, db.CreateUserRoleParams{
+			UserID: userID,
+			RoleID: int32(*role.ID),
+		}); err != nil {
+			return fmt.Errorf("failed to create user role: %w", err)
 		}
 	}
 
