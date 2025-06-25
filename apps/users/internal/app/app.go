@@ -9,35 +9,26 @@ import (
 	"github.com/pratchaya-maneechot/service-exchange/apps/users/internal/app/handler"
 	"github.com/pratchaya-maneechot/service-exchange/apps/users/internal/config"
 	"github.com/pratchaya-maneechot/service-exchange/apps/users/internal/domain/role"
+	"github.com/pratchaya-maneechot/service-exchange/apps/users/internal/infra/observability"
 )
 
-type AppModule struct {
+type App struct {
 	GetUserProfileQueryHandler      *handler.GetUserProfileQueryHandler
 	RegisterUserCommandHandler      *handler.RegisterUserCommandHandler
 	UpdateUserProfileCommandHandler *handler.UpdateUserProfileCommandHandler
-}
-
-func NewAppModule(
-	gpq *handler.GetUserProfileQueryHandler,
-	ruc *handler.RegisterUserCommandHandler,
-	upc *handler.UpdateUserProfileCommandHandler,
-) *AppModule {
-	return &AppModule{
-		RegisterUserCommandHandler:      ruc,
-		GetUserProfileQueryHandler:      gpq,
-		UpdateUserProfileCommandHandler: upc,
-	}
+	RoleCacheService                *role.RoleCacheService
 }
 
 func ProvideRoleCacheService(
 	reader role.RoleReader,
 	logger *slog.Logger,
 	cfg *config.Config,
-	ctx context.Context,
+	parentCtx context.Context,
+	metricsRecorder observability.MetricsRecorder,
 ) *role.RoleCacheService {
 	refreshInterval := time.Duration(cfg.Server.CacheRefreshIntervalDay) * 24 * time.Hour
-	rcm := role.NewRoleCacheService(reader, logger, refreshInterval)
-	rcm.InitAndStartRefresh(ctx)
+	rcm := role.NewRoleCacheService(reader, logger, metricsRecorder, refreshInterval)
+	rcm.InitAndStartRefresh(parentCtx)
 	return rcm
 }
 
@@ -46,5 +37,5 @@ var AppModuleSet = wire.NewSet(
 	handler.NewRegisterUserCommandHandler,
 	handler.NewUpdateUserProfileCommandHandler,
 	ProvideRoleCacheService,
-	NewAppModule,
+	wire.Struct(new(App), "*"),
 )

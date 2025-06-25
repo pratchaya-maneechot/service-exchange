@@ -6,7 +6,6 @@ import (
 	"time"
 
 	"github.com/pratchaya-maneechot/service-exchange/apps/users/internal/config"
-	"github.com/prometheus/client_golang/prometheus"
 	"github.com/prometheus/client_golang/prometheus/promhttp"
 )
 
@@ -15,52 +14,9 @@ type MetricServer struct {
 	config config.MetricsConfig
 }
 
-var (
-	GrpcRequestsTotal = prometheus.NewCounterVec(
-		prometheus.CounterOpts{
-			Name: "grpc_requests_total",
-			Help: "Total number of gRPC requests",
-		},
-		[]string{"method", "status"},
-	)
-
-	GrpcRequestDuration = prometheus.NewHistogramVec(
-		prometheus.HistogramOpts{
-			Name:    "grpc_request_duration_seconds",
-			Help:    "Duration of gRPC requests",
-			Buckets: prometheus.DefBuckets,
-		},
-		[]string{"method"},
-	)
-
-	GrpcActiveConnections = prometheus.NewGauge(
-		prometheus.GaugeOpts{
-			Name: "grpc_active_connections",
-			Help: "Number of active gRPC connections",
-		},
-	)
-
-	AppInfo = prometheus.NewGaugeVec(
-		prometheus.GaugeOpts{
-			Name: "app_info",
-			Help: "Application information",
-		},
-		[]string{"version", "environment"},
-	)
-)
-
-func init() {
-	prometheus.MustRegister(
-		GrpcRequestsTotal,
-		GrpcRequestDuration,
-		GrpcActiveConnections,
-		AppInfo,
-	)
-}
-
-func NewServer(cfg config.MetricsConfig) *MetricServer {
+func NewServer(cfg *config.Config) *MetricServer {
 	mux := http.NewServeMux()
-	mux.Handle(cfg.Path, promhttp.Handler())
+	mux.Handle(cfg.Metrics.Path, promhttp.Handler())
 	mux.HandleFunc("/health", func(w http.ResponseWriter, r *http.Request) {
 		w.WriteHeader(http.StatusOK)
 		w.Write([]byte("OK"))
@@ -68,12 +24,12 @@ func NewServer(cfg config.MetricsConfig) *MetricServer {
 
 	return &MetricServer{
 		server: &http.Server{
-			Addr:         cfg.Address,
+			Addr:         cfg.Metrics.Address,
 			Handler:      mux,
 			ReadTimeout:  10 * time.Second,
 			WriteTimeout: 10 * time.Second,
 		},
-		config: cfg,
+		config: cfg.Metrics,
 	}
 }
 

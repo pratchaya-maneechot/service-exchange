@@ -1,66 +1,66 @@
 package infra
 
 import (
+	"context"
+	"fmt"
+	"log/slog"
+
+	sdktrace "go.opentelemetry.io/otel/sdk/trace"
+
 	"github.com/google/wire"
-	"github.com/pratchaya-maneechot/service-exchange/apps/users/internal/config"
-	"github.com/pratchaya-maneechot/service-exchange/apps/users/internal/domain/role"
-	"github.com/pratchaya-maneechot/service-exchange/apps/users/internal/domain/user"
+	"github.com/pratchaya-maneechot/service-exchange/apps/users/internal/infra/observability" // Make sure this path is correct
 	"github.com/pratchaya-maneechot/service-exchange/apps/users/internal/infra/observability/metrics"
 	"github.com/pratchaya-maneechot/service-exchange/apps/users/internal/infra/persistence/postgres"
 	"github.com/pratchaya-maneechot/service-exchange/apps/users/internal/infra/persistence/readers"
 	"github.com/pratchaya-maneechot/service-exchange/apps/users/internal/infra/persistence/repositories"
 )
 
-type Repository struct {
-	User user.UserRepository
-}
-type Reader struct {
-	Role role.RoleReader
+type Infra struct {
+	dbPool *postgres.DBPool
+	logger *slog.Logger
+	tracer *sdktrace.TracerProvider
 }
 
-func ProvideReader(
-	role role.RoleReader,
-) *Reader {
-	return &Reader{
-		Role: role,
-	}
-}
-func ProvideRepository(
-	ur user.UserRepository,
-) *Repository {
-	return &Repository{
-		User: ur,
+func NewInfra(
+	dbPool *postgres.DBPool,
+	logger *slog.Logger,
+	tracer *sdktrace.TracerProvider,
+) *Infra {
+	return &Infra{
+		dbPool,
+		logger,
+		tracer,
 	}
 }
 
-func ProvideMetricServer(cfg *config.Config) *metrics.MetricServer {
-	return metrics.NewServer(cfg.Metrics)
-}
-
-type InfraModule struct {
-	Reader     *Reader
-	Repository *Repository
-	Metric     *metrics.MetricServer
-}
-
-func NewInfraModule(
-	repository *Repository,
-	reader *Reader,
-	metric *metrics.MetricServer,
-) *InfraModule {
-	return &InfraModule{
-		Repository: repository,
-		Metric:     metric,
-		Reader:     reader,
+// Close method for graceful shutdown of infrastructure components
+func (i *Infra) Close(ctx context.Context) error {
+	var errs []error
+	if i.tracer != nil {
+		if err := i.tracer.Shutdown(ctx); err != nil {
+			i.logger.Error("Failed to shutdown OpenTelemetry TracerProvider", "error", err)
+			errs = append(errs, fmt.Errorf("tracer shutdown failed: %w", err))
+		}
 	}
+	if i.dbPool != nil {
+		i.dbPool.Close()
+		i.logger.Info("PostgreSQL database pool closed.")
+	}
+	i.logger.Info("Infrastructure components closed.")
+
+	if len(errs) > 0 {
+		return fmt.Errorf("errors during infra close: %v", errs)
+	}
+	return nil
 }
 
 var InfraModuleSet = wire.NewSet(
 	postgres.NewDBConn,
 	repositories.NewPostgresUserRepository,
 	readers.NewPostgresRoleReader,
-	ProvideReader,
-	ProvideRepository,
-	ProvideMetricServer,
-	NewInfraModule,
+	metrics.NewServer,
+	observability.NewLogger,
+	observability.NewTracer,
+	observability.NewPrometheusMetricsRecorder,
+	NewInfra,
 )

@@ -8,7 +8,6 @@ import (
 	"github.com/pratchaya-maneechot/service-exchange/apps/users/internal/app/command"
 	"github.com/pratchaya-maneechot/service-exchange/apps/users/internal/app/query"
 	"github.com/pratchaya-maneechot/service-exchange/apps/users/internal/domain/shared/ids"
-	"github.com/pratchaya-maneechot/service-exchange/apps/users/internal/domain/user"
 	"github.com/pratchaya-maneechot/service-exchange/apps/users/internal/grpc/mappers"
 	"github.com/pratchaya-maneechot/service-exchange/apps/users/internal/grpc/utils"
 	"github.com/pratchaya-maneechot/service-exchange/apps/users/pkg/bus"
@@ -48,16 +47,15 @@ func (h *UserGRPCHandler) RegisterUser(ctx context.Context, req *pb.RegisterUser
 	}
 	result, err := h.commandBus.Dispatch(ctx, cmd)
 	if err != nil {
-		h.logger.Error("Failed to dispatch RegisterUserCommand", "error", err)
 		return nil, grpcutil.NewGRPCErrCode(err)
 	}
-	usr, ok := result.(*user.User)
+	usr, ok := result.(*command.RegisterUserDto)
 	if !ok {
 		return nil, status.Errorf(codes.Internal, "internal server error: unexpected response from RegisterUserCommand handler")
 	}
 	return &pb.RegisterUserResponse{
-		UserId:           string(usr.ID),
-		JwtToken:         string(usr.ID),
+		UserId:           string(usr.UserID),
+		JwtToken:         string(usr.UserID),
 		ExpiresInSeconds: int32(0),
 	}, nil
 }

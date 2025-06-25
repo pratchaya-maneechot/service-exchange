@@ -11,6 +11,7 @@ import (
 	"github.com/pratchaya-maneechot/service-exchange/apps/users/internal/config"
 	"github.com/pratchaya-maneechot/service-exchange/apps/users/internal/grpc/handlers"
 	"github.com/pratchaya-maneechot/service-exchange/apps/users/internal/grpc/middleware"
+	"github.com/pratchaya-maneechot/service-exchange/apps/users/internal/infra/observability"
 	"github.com/pratchaya-maneechot/service-exchange/apps/users/pkg/bus"
 	"google.golang.org/grpc"
 	"google.golang.org/grpc/credentials"
@@ -20,7 +21,7 @@ import (
 	"google.golang.org/grpc/reflection"
 )
 
-type Server struct {
+type GRPCServer struct {
 	gRPCServer   *grpc.Server
 	listener     net.Listener
 	config       *config.Config
@@ -30,9 +31,10 @@ type Server struct {
 
 func NewServer(
 	cfg *config.Config,
-	bus *bus.Bus,
+	bBus *bus.Bus,
 	logger *slog.Logger,
-) (*Server, error) {
+	metricsRecorder observability.MetricsRecorder,
+) (*GRPCServer, error) {
 
 	opts := []grpc.ServerOption{
 		grpc.KeepaliveParams(keepalive.ServerParameters{
@@ -62,20 +64,20 @@ func NewServer(
 	opts = append(opts,
 		grpc.ChainUnaryInterceptor(
 			middleware.UnaryLoggingInterceptor(logger),
-			middleware.UnaryMetricsInterceptor(),
+			middleware.UnaryMetricsInterceptor(metricsRecorder),
 			middleware.UnaryRecoveryInterceptor(logger),
 			middleware.UnaryRateLimitInterceptor(cfg.Security.RateLimitRPS, cfg.Security.RateLimitBurst),
 		),
-		grpc.ChainStreamInterceptor(
-			middleware.StreamLoggingInterceptor(logger),
-			middleware.StreamMetricsInterceptor(),
-			middleware.StreamRecoveryInterceptor(logger),
-		),
+		// grpc.ChainStreamInterceptor(
+		// 	middleware.StreamLoggingInterceptor(logger),
+		// 	middleware.StreamMetricsInterceptor(metricsRecorder),
+		// 	middleware.StreamRecoveryInterceptor(logger),
+		// ),
 	)
 
 	gRPCServer := grpc.NewServer(opts...)
 
-	handlers.RegisUserGRPCHandler(gRPCServer, bus.CommandBus, bus.QueryBus, logger)
+	handlers.RegisUserGRPCHandler(gRPCServer, bBus.CommandBus, bBus.QueryBus, logger)
 
 	var healthServer *health.Server
 	if cfg.Server.EnableHealthCheck {
@@ -91,7 +93,7 @@ func NewServer(
 		logger.Info("gRPC reflection enabled")
 	}
 
-	return &Server{
+	return &GRPCServer{
 		gRPCServer:   gRPCServer,
 		config:       cfg,
 		logger:       logger,
@@ -99,45 +101,37 @@ func NewServer(
 	}, nil
 }
 
-func (s *Server) Start(ctx context.Context) error {
+func (s *GRPCServer) Start(ctx context.Context) error {
 	listener, err := net.Listen("tcp", s.config.Server.Address)
 	if err != nil {
 		return errors.Wrapf(err, "failed to listen on %s", s.config.Server.Address)
 	}
 	s.listener = listener
-
+	go s.handleShutdown(ctx)
 	s.logger.Info("gRPC server starting",
 		"address", s.config.Server.Address,
 		"tls_enabled", s.config.Security.EnableTLS)
-
-	go s.handleShutdown(ctx)
-
 	if err := s.gRPCServer.Serve(listener); err != nil {
 		s.logger.Error("gRPC server serve error", "error", err)
 		return errors.Wrap(err, "failed to serve gRPC server")
 	}
-
 	return nil
 }
 
-func (s *Server) handleShutdown(ctx context.Context) {
+func (s *GRPCServer) handleShutdown(ctx context.Context) {
 	<-ctx.Done()
 	s.logger.Info("initiating graceful shutdown...")
-
 	if s.healthServer != nil {
 		s.healthServer.SetServingStatus("", grpc_health_v1.HealthCheckResponse_NOT_SERVING)
 		s.healthServer.SetServingStatus("user.UserService", grpc_health_v1.HealthCheckResponse_NOT_SERVING)
 	}
-
 	shutdownCtx, cancel := context.WithTimeout(context.Background(), s.config.Server.ShutdownTimeout)
 	defer cancel()
-
 	done := make(chan struct{})
 	go func() {
 		s.gRPCServer.GracefulStop()
 		close(done)
 	}()
-
 	select {
 	case <-done:
 		s.logger.Info("gRPC server stopped gracefully")

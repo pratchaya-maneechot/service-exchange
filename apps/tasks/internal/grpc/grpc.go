@@ -122,7 +122,7 @@ func (s *Server) Start(ctx context.Context) error {
 
 func (s *Server) handleShutdown(ctx context.Context) {
 	<-ctx.Done()
-	s.logger.Info("initiating graceful shutdown...")
+	s.logger.Info("initiating gRPC graceful shutdown...")
 
 	if s.healthServer != nil {
 		s.healthServer.SetServingStatus("", grpc_health_v1.HealthCheckResponse_NOT_SERVING)

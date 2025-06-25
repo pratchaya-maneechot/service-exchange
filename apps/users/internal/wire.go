@@ -5,7 +5,11 @@ package internal
 
 import (
 	"context"
+	"errors"
+	"fmt"
 	"log/slog"
+	"net/http"
+	"time"
 
 	"github.com/google/wire"
 	"github.com/pratchaya-maneechot/service-exchange/apps/users/internal/app"
@@ -14,7 +18,7 @@ import (
 	"github.com/pratchaya-maneechot/service-exchange/apps/users/internal/config"
 	grpc "github.com/pratchaya-maneechot/service-exchange/apps/users/internal/grpc"
 	"github.com/pratchaya-maneechot/service-exchange/apps/users/internal/infra"
-	logger "github.com/pratchaya-maneechot/service-exchange/apps/users/internal/infra/observability/logging"
+	"github.com/pratchaya-maneechot/service-exchange/apps/users/internal/infra/observability/metrics"
 	"github.com/pratchaya-maneechot/service-exchange/apps/users/pkg/bus"
 )
 
@@ -22,58 +26,96 @@ func ProvideConfig() (*config.Config, error) {
 	return config.Load()
 }
 
-func ProvideLogger(cfg *config.Config) *slog.Logger {
-	return logger.New(cfg)
-}
-
 type Internal struct {
-	Config   *config.Config
-	Server   *grpc.Server
-	Infra    *infra.InfraModule
-	Logger   *slog.Logger
-	App      *app.AppModule
-	Bus      *bus.Bus
-	Shutdown *ShutdownHandler
-	BContext context.Context
+	Config       *config.Config
+	Server       *grpc.GRPCServer
+	Logger       *slog.Logger
+	App          *app.App
+	Bus          *bus.Bus
+	MetricServer *metrics.MetricServer
+	Cleanup      func()
 }
 
 func NewInternal(
-	cf *config.Config,
-	gs *grpc.Server,
-	inf *infra.InfraModule,
-	app *app.AppModule,
-	bus *bus.Bus,
-	sd *ShutdownHandler,
-	lg *slog.Logger,
-	bCtx context.Context,
+	cfg *config.Config,
+	gs *grpc.GRPCServer,
+	appModule *app.App,
+	bBus *bus.Bus,
+	logger *slog.Logger,
+	metricServer *metrics.MetricServer,
+	cleanup func(),
 ) *Internal {
 
-	bus.CommandBus.RegisterHandler(command.RegisterUserCommand{}, app.RegisterUserCommandHandler)
-
-	bus.QueryBus.RegisterHandler(query.GetUserProfileQuery{}, app.GetUserProfileQueryHandler)
+	bBus.CommandBus.RegisterHandler(command.RegisterUserCommand{}, appModule.RegisterUserCommandHandler)
+	bBus.CommandBus.RegisterHandler(command.UpdateUserProfileCommand{}, appModule.UpdateUserProfileCommandHandler)
+	bBus.QueryBus.RegisterHandler(query.GetUserProfileQuery{}, appModule.GetUserProfileQueryHandler)
 
 	return &Internal{
-		Config:   cf,
-		Server:   gs,
-		Infra:    inf,
-		App:      app,
-		Bus:      bus,
-		Shutdown: sd,
-		Logger:   lg,
-		BContext: bCtx,
+		Config:       cfg,
+		Server:       gs,
+		App:          appModule,
+		Bus:          bBus,
+		Logger:       logger,
+		MetricServer: metricServer,
+		Cleanup:      cleanup,
 	}
 }
 
-func InitializeApp(ctx context.Context) (*Internal, error) {
+func InitializeApp(parentCtx context.Context) (*Internal, error) {
 	wire.Build(
 		ProvideConfig,
-		ProvideLogger,
-		NewShutdownHandler,
 		app.AppModuleSet,
 		bus.BusModuleSet,
-		grpc.NewServer,
 		infra.InfraModuleSet,
+		grpc.NewServer,
 		NewInternal,
+		ProvideAppCleanup,
 	)
 	return &Internal{}, nil
+}
+
+func ProvideAppCleanup(
+	infraModule *infra.Infra,
+	server *grpc.GRPCServer,
+	metricServer *metrics.MetricServer,
+	logger *slog.Logger,
+	appModule *app.App,
+) func() {
+	return func() {
+		cleanupCtx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
+		defer cancel()
+
+		var shutdownErrors []error
+
+		if appModule.RoleCacheService != nil {
+			appModule.RoleCacheService.Stop()
+			logger.Info("RoleCacheService stopped.")
+		}
+
+		if metricServer != nil {
+			if err := metricServer.Stop(cleanupCtx); err != nil && !errors.Is(err, http.ErrServerClosed) {
+				shutdownErrors = append(shutdownErrors, fmt.Errorf("failed to stop metrics server: %w", err))
+				logger.Error("Failed to stop metrics server", "error", err)
+			} else if err == nil {
+				logger.Info("Metrics server stopped.")
+			}
+		}
+
+		// gRPC server is typically stopped by context cancellation in its Start() method,
+		// so an explicit server.Stop() might not be needed here if Start() is blocking.
+		// If you had a separate server.Stop() method, you'd call it here.
+
+		if err := infraModule.Close(cleanupCtx); err != nil {
+			shutdownErrors = append(shutdownErrors, fmt.Errorf("failed to stop infra: %w", err))
+			logger.Error("Failed to stop infrastructure", "error", err)
+		} else {
+			logger.Info("Infrastructure components closed.")
+		}
+
+		if len(shutdownErrors) > 0 {
+			logger.Error("Errors encountered during application shutdown", "errors", shutdownErrors)
+		} else {
+			logger.Info("Application shutdown completed successfully.")
+		}
+	}
 }

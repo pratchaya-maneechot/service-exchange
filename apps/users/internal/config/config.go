@@ -13,6 +13,7 @@ import (
 
 type Config struct {
 	Environment string         `mapstructure:"environment" validate:"required,oneof=development staging production"`
+	Name        string         `mapstructure:"name" validate:"required"`
 	Version     string         `mapstructure:"version" validate:"required"`
 	Server      ServerConfig   `mapstructure:"server" validate:"required"`
 	Database    DatabaseConfig `mapstructure:"database" validate:"required"`

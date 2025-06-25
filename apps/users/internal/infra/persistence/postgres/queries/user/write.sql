@@ -5,12 +5,23 @@ INSERT INTO users (
     $1, $2, $3, $4, $5, NOW(), NOW(), $6
 ) RETURNING id, line_user_id, email, password_hash, status, created_at, updated_at, last_login_at;
 
--- name: CreateProfile :one
+-- name: UpsertUserProfile :one
 INSERT INTO profiles (
     user_id, display_name, first_name, last_name, bio, avatar_url, phone_number, address, preferences
 ) VALUES (
     $1, $2, $3, $4, $5, $6, $7, $8, $9
-) RETURNING user_id, display_name, first_name, last_name, bio, avatar_url, phone_number, address, preferences;
+)
+ON CONFLICT (user_id)
+DO UPDATE SET
+    display_name = EXCLUDED.display_name,
+    first_name = EXCLUDED.first_name,
+    last_name = EXCLUDED.last_name,
+    bio = EXCLUDED.bio,
+    avatar_url = EXCLUDED.avatar_url,
+    phone_number = EXCLUDED.phone_number,
+    address = EXCLUDED.address,
+    preferences = EXCLUDED.preferences
+RETURNING user_id, display_name, first_name, last_name, bio, avatar_url, phone_number, address, preferences;
 
 -- name: UpdateUser :one
 UPDATE users
@@ -23,20 +34,6 @@ SET
     last_login_at = $6
 WHERE id = $1
 RETURNING id, line_user_id, email, password_hash, status, created_at, updated_at, last_login_at;
-
--- name: UpdateProfile :one
-UPDATE profiles
-SET
-    display_name = $2,
-    first_name = $3,
-    last_name = $4,
-    bio = $5,
-    avatar_url = $6,
-    phone_number = $7,
-    address = $8,
-    preferences = $9
-WHERE user_id = $1
-RETURNING user_id, display_name, first_name, last_name, bio, avatar_url, phone_number, address, preferences;
 
 -- name: UpdateUserLastLoginAt :execrows
 UPDATE users

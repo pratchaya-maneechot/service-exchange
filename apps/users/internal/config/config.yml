@@ -1,4 +1,5 @@
 environment: development
+name: users
 version: 1.0.0
 server:
   address: ":50051"
@@ -35,7 +36,7 @@ logging:
   structured: false
 metrics:
   enabled: true
-  address: ":8080"
+  address: "0.0.0.0:9091"
   path: "/metrics"
 security:
   enable_tls: false

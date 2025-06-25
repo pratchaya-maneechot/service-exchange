@@ -3,15 +3,20 @@ package command
 import (
 	"github.com/pratchaya-maneechot/service-exchange/apps/users/internal/domain/shared/ids"
 	"github.com/pratchaya-maneechot/service-exchange/apps/users/internal/domain/user"
+	"github.com/pratchaya-maneechot/service-exchange/apps/users/pkg/bus"
 )
 
 // RegisterUserCommand represents a command to register a new user.
 type RegisterUserCommand struct {
+	bus.Command
 	LineUserID  string `json:"lineUserId" validate:"required"`             // Required for LINE LIFF integration
 	Email       string `json:"email,omitempty" validate:"omitempty,email"` // Optional, but if present, must be valid email
 	Password    string `json:"password,omitempty"`                         // Optional, if only LINE login is supported
 	DisplayName string `json:"displayName" validate:"required"`            // From LINE profile or user input
 	AvatarURL   string `json:"avatarUrl,omitempty"`                        // From LINE profile or user input
+}
+type RegisterUserDto struct {
+	UserID string `json:"UserId" validate:"required"`
 }
 
 // UserLoginCommand represents a command to log in a user.
