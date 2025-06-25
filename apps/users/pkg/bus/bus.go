@@ -4,6 +4,7 @@ import (
 	"github.com/google/wire"
 )
 
+type Result any
 type Bus struct {
 	CommandBus CommandBus
 	QueryBus   QueryBus

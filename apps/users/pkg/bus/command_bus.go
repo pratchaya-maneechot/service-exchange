@@ -102,7 +102,7 @@ func (b *commandBus) RegisterHandler(cmdType Command, handler any) error {
 }
 
 // Dispatch dispatches a Command to its registered handler.
-func (b *commandBus) Dispatch(ctx context.Context, cmd Command) (any, error) {
+func (b *commandBus) Dispatch(ctx context.Context, cmd Command) (Result, error) {
 	cmdType := reflect.TypeOf(cmd)
 
 	handlerUntyped, ok := b.handlers.Load(cmdType)

@@ -11,13 +11,13 @@ import (
 type Command any
 
 // CommandHandler is an interface for handling a specific command.
-type CommandHandler[C Command, R any] interface {
+type CommandHandler[C Command, R Result] interface {
 	Handle(ctx context.Context, cmd C) (R, error)
 }
 
 // CommandBus is the interface for dispatching commands.
 type CommandBus interface {
-	Dispatch(ctx context.Context, cmd Command) (any, error)
+	Dispatch(ctx context.Context, cmd Command) (Result, error)
 	RegisterHandler(cmdType Command, handler any) error
 }
 

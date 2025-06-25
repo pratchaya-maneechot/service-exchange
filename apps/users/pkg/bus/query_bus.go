@@ -98,7 +98,7 @@ func (b *queryBus) RegisterHandler(queryType Query, handler any) error {
 }
 
 // Dispatch dispatches a Query to its registered handler and returns the result.
-func (b *queryBus) Dispatch(ctx context.Context, query Query) (any, error) {
+func (b *queryBus) Dispatch(ctx context.Context, query Query) (Result, error) {
 	queryType := reflect.TypeOf(query)
 
 	handlerUntyped, ok := b.handlers.Load(queryType)

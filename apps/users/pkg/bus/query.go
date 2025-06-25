@@ -17,7 +17,7 @@ type QueryHandler[Q Query, R any] interface {
 
 // QueryBus is the interface for dispatching queries.
 type QueryBus interface {
-	Dispatch(ctx context.Context, query Query) (any, error)
+	Dispatch(ctx context.Context, query Query) (Result, error)
 	RegisterHandler(queryType Query, handler any) error
 }
 
