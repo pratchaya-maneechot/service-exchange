@@ -1,6 +1,10 @@
 services:
+  # ----------------------------------------------------
+  # PostgreSQL Database Service
+  # ----------------------------------------------------
   db:
-    image: postgres:16 # Or postgres:15, postgres:14
+    image: postgres:16
+    container_name: service_exchange_db
     environment:
       POSTGRES_DB: postgres
       POSTGRES_USER: root
@@ -8,7 +12,92 @@ services:
     ports:
       - "5432:5432"
     volumes:
-      - pgdata:/var/lib/postgresql/data
+      - ./tmp/db_data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U user -d users_db"]
+      interval: 5s
+      timeout: 5s
+      retries: 5
+    networks:
+      - app_network
 
-volumes:
-  pgdata:
+  # ----------------------------------------------------
+  # OpenTelemetry Collector
+  # ----------------------------------------------------
+  otel-collector:
+    image: otel/opentelemetry-collector-contrib:0.98.0
+    container_name: otel_collector
+    command: ["--config=/etc/otel-collector-config.yaml"]
+    volumes:
+      - ./otel-collector-config.yaml:/etc/otel-collector-config.yaml
+    ports:
+      - "4317:4317" # OTLP gRPC receiver
+      - "4318:4318" # OTLP HTTP receiver (ถ้าใช้)
+      - "8888:8888" # Prometheus metrics endpoint (สำหรับ Collector เอง)
+      - "13133:13133" # Health Check Extension
+    depends_on:
+      db:
+        condition: service_healthy # รอให้ DB พร้อมก่อน
+    networks:
+      - app_network
+
+  # ----------------------------------------------------
+  # Jaeger UI (for visualizing Traces)
+  # ----------------------------------------------------
+  jaeger:
+    image: jaegertracing/all-in-one:1.56
+    container_name: jaeger_ui
+    ports:
+      - "16686:16686" # Jaeger UI
+      - "14268:14268" # Jaeger Collector HTTP
+    environment:
+      COLLECTOR_OTLP_ENABLED: "true"
+    depends_on:
+      otel-collector:
+        condition: service_started
+    networks:
+      - app_network
+
+  # ----------------------------------------------------
+  # Prometheus (for collecting metrics)
+  # ----------------------------------------------------
+  prometheus:
+    image: prom/prometheus:v2.51.1
+    container_name: prometheus_server
+    volumes:
+      - ./prometheus.yaml:/etc/prometheus/prometheus.yml
+    ports:
+      - "9090:9090"
+    command:
+      - '--config.file=/etc/prometheus/prometheus.yml'
+    depends_on:
+      otel-collector:
+        condition: service_started
+    networks:
+      - app_network
+
+  # ----------------------------------------------------
+  # Grafana (for visualizing Metrics)
+  # ----------------------------------------------------
+  grafana:
+    image: grafana/grafana:10.4.1
+    container_name: grafana_ui
+    ports:
+      - "3200:3000"
+    volumes:
+      - ./tmp/grafana_data:/var/lib/grafana
+      # หากต้องการกำหนดค่า Datasource หรือ Dashboard ล่วงหน้า (ขั้นสูง)
+      # - ./grafana/provisioning/datasources:/etc/grafana/provisioning/datasources
+      # - ./grafana/provisioning/dashboards:/etc/grafana/provisioning/dashboards
+    environment:
+      - GF_SECURITY_ADMIN_USER=admin
+      - GF_SECURITY_ADMIN_PASSWORD=admin
+    depends_on:
+      prometheus:
+        condition: service_started
+    networks:
+      - app_network
+
+networks:
+  app_network:
+    driver: bridge

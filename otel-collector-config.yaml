@@ -1,0 +1,33 @@
+# otel-collector-config.yaml
+receivers:
+  otlp:
+    protocols:
+      grpc:
+      http:
+
+processors:
+  batch:
+    send_batch_size: 100
+    timeout: 10s
+
+exporters:
+  # แก้ไขตรงนี้: ใช้ otlp exporter แทน jaeger
+  otlp:
+    endpoint: jaeger:4317 # Jaeger all-in-one มี OTLP gRPC receiver ที่พอร์ต 4317
+    tls:
+      insecure: true # สำหรับการทดสอบในสภาพแวดล้อม local
+
+  prometheus:
+    endpoint: "0.0.0.0:9090"
+    send_timestamps: true
+
+service:
+  pipelines:
+    traces:
+      receivers: [otlp]
+      processors: [batch]
+      exporters: [otlp] # แก้ไขตรงนี้: ส่งออกไปยัง otlp exporter
+    metrics:
+      receivers: [otlp]
+      processors: [batch]
+      exporters: [prometheus]

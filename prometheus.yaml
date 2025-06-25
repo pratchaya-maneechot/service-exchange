@@ -1,0 +1,17 @@
+# prometheus.yaml
+global:
+  scrape_interval: 15s # Prometheus จะ scrape metrics ทุก 15 วินาที
+
+scrape_configs:
+  - job_name: 'otel-collector' # สำหรับดึง metrics จาก OpenTelemetry Collector เอง
+    static_configs:
+      - targets: ['otel-collector:8888'] # otel-collector คือชื่อ service ใน docker-compose.yaml, 8888 คือ port ที่ Collector expose metrics
+
+  - job_name: 'service-exchange' # สำหรับดึง metrics จาก Go Application ของคุณโดยตรง
+    static_configs:
+      # host.docker.internal คือ DNS name พิเศษที่ใช้ใน Docker Desktop (Mac/Windows)
+      # เพื่ออ้างถึง IP ของเครื่อง Host ที่รัน Docker
+      # หากคุณใช้ Linux ที่ไม่ใช่ Docker Desktop อาจต้องเปลี่ยนเป็น IP ของเครื่อง Host จริงๆ
+      # (เช่น 172.17.0.1 หากใช้ bridge network default, หรือ IP ที่แน่ใจว่าเข้าถึงได้)
+      # Port 9091 คือ Default Port ที่ Prometheus client library ใน Go มักจะ expose metrics
+      - targets: ['host.docker.internal:9091']
