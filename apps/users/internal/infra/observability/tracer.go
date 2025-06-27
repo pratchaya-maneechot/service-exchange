@@ -19,8 +19,7 @@ import (
 func NewTracer(ctx context.Context, config *config.Config) (*sdktrace.TracerProvider, error) {
 	// Exporter configuration (e.g., to an OpenTelemetry Collector)
 	traceExporter, err := otlptracegrpc.New(ctx,
-		otlptracegrpc.WithInsecure(), // For local/development, use WithTLSCredentials for production
-		otlptracegrpc.WithEndpoint("localhost:4317"),
+		otlptracegrpc.WithInsecure(),
 	)
 	if err != nil {
 		return nil, fmt.Errorf("failed to create trace exporter: %w", err)

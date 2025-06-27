@@ -33,16 +33,6 @@ func UnaryTraceInterceptor() grpc.UnaryServerInterceptor {
 	}
 }
 
-// UnaryLoggingInterceptor adds trace and span IDs to the logger context.
-func UnaryLoggingInterceptor(logger *slog.Logger) grpc.UnaryServerInterceptor {
-	return func(ctx context.Context, req any, info *grpc.UnaryServerInfo, handler grpc.UnaryHandler) (any, error) {
-		// Use the LoggerWithTraceContext helper to enrich the logger
-		ctx = context.WithValue(ctx, "logger", observability.LoggerWithTraceContext(ctx, logger))
-		resp, err := handler(ctx, req)
-		return resp, err
-	}
-}
-
 // UnaryMetricsInterceptor records gRPC request metrics.
 func UnaryMetricsInterceptor(metricsRecorder observability.MetricsRecorder) grpc.UnaryServerInterceptor {
 	return func(ctx context.Context, req any, info *grpc.UnaryServerInfo, handler grpc.UnaryHandler) (any, error) {

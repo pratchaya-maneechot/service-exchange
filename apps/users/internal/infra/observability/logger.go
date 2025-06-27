@@ -26,7 +26,7 @@ func NewLogger(cfg *config.Config) *slog.Logger {
 	return logger
 }
 
-func LoggerWithTraceContext(ctx context.Context, logger *slog.Logger) *slog.Logger {
+func withTracer(ctx context.Context, logger *slog.Logger) *slog.Logger {
 	spanCtx := trace.SpanContextFromContext(ctx)
 	if spanCtx.IsValid() {
 		return logger.With(
@@ -53,8 +53,11 @@ func parseLevel(level string) slog.Level {
 }
 
 func GetLoggerFromContext(ctx context.Context) *slog.Logger {
+	var bLogger *slog.Logger
 	if logger, ok := ctx.Value("logger").(*slog.Logger); ok {
-		return logger
+		bLogger = logger
+	} else {
+		bLogger = slog.Default()
 	}
-	return slog.Default()
+	return withTracer(ctx, bLogger)
 }

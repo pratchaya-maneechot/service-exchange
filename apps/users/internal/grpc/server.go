@@ -63,10 +63,9 @@ func NewServer(
 
 	opts = append(opts,
 		grpc.ChainUnaryInterceptor(
-			middleware.UnaryLoggingInterceptor(logger),
-			middleware.UnaryMetricsInterceptor(metricsRecorder),
 			middleware.UnaryRecoveryInterceptor(logger),
-			middleware.UnaryRateLimitInterceptor(cfg.Security.RateLimitRPS, cfg.Security.RateLimitBurst),
+			middleware.UnaryTraceInterceptor(),
+			middleware.UnaryMetricsInterceptor(metricsRecorder),
 		),
 		// grpc.ChainStreamInterceptor(
 		// 	middleware.StreamLoggingInterceptor(logger),
