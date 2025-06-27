@@ -12,7 +12,7 @@ services:
     ports:
       - "5432:5432"
     volumes:
-      - ./tmp/db_data:/var/lib/postgresql/data
+      - ../tmp/db_data:/var/lib/postgresql/data
     healthcheck:
       test: ["CMD-SHELL", "pg_isready -U user -d users_db"]
       interval: 5s
@@ -85,7 +85,7 @@ services:
     ports:
       - "3200:3000"
     volumes:
-      - ./tmp/grafana_data:/var/lib/grafana
+      - ../tmp/grafana_data:/var/lib/grafana
       # หากต้องการกำหนดค่า Datasource หรือ Dashboard ล่วงหน้า (ขั้นสูง)
       # - ./grafana/provisioning/datasources:/etc/grafana/provisioning/datasources
       # - ./grafana/provisioning/dashboards:/etc/grafana/provisioning/dashboards

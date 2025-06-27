@@ -2,9 +2,11 @@
 SERVICES := users tasks
 SERVICE ?= users
 NAME ?= default_migration
+TOOLS_SCRIPTS_DIR := tools/scripts
 
 # Database config
-DB_URL = postgres://root:Hl7FudwaSNzOhhioo0GxlmmMD0LM+I8StQIqJCZ1TPg@localhost:5432
+DB_URL = postgres://root:Hl7FudwaSNzOhhioo0GxlmmMD0LM+I8StQIqJCZ1TPg@localhost:5422 # Changed port to 5422 to avoid conflict with default
+
 
 .PHONY: help $(SERVICES)
 
@@ -15,8 +17,8 @@ DB_URL = postgres://root:Hl7FudwaSNzOhhioo0GxlmmMD0LM+I8StQIqJCZ1TPg@localhost:5
 
 %-generate:
 	@echo "Generating $* code..."
-	@[ -f ./apps/$*/scripts/generate-proto.sh ] && sh ./apps/$*/scripts/generate-proto.sh || true
-	@[ -f ./apps/$*/scripts/generate-wire.sh ] && cd ./apps/$* && sh ./scripts/generate-wire.sh || true
+	@[ -f $(TOOLS_SCRIPTS_DIR)/generate-proto.sh ] && sh $(TOOLS_SCRIPTS_DIR)/generate-proto.sh $* || true
+	@[ -f $(TOOLS_SCRIPTS_DIR)/generate-wire.sh ] && sh $(TOOLS_SCRIPTS_DIR)/generate-wire.sh $* || true
 	@[ -d ./apps/$*/internal/infra/persistence/postgres ] && cd ./apps/$*/internal/infra/persistence/postgres && sqlc generate || true
 
 %-build-image:
