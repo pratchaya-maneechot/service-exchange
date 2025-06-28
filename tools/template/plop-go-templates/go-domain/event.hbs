@@ -1,0 +1,22 @@
+/**
+ * {{pascalCase moduleName}} - Domain Events
+ */
+
+package {{kebabCase moduleName}}
+
+// Define domain events related to the {{pascalCase moduleName}} entity here.
+// These events can be published when something significant happens to the {{pascalCase moduleName}}.
+
+// Example: {{pascalCase moduleName}}CreatedEvent is dispatched when a new {{pascalCase moduleName}} is created.
+type {{pascalCase moduleName}}CreatedEvent struct {
+	{{pascalCase moduleName}}ID string
+	Name     string
+	// Add other relevant data
+}
+
+// Example: {{pascalCase moduleName}}NameUpdatedEvent is dispatched when {{pascalCase moduleName}}'s name changes.
+type {{pascalCase moduleName}}NameUpdatedEvent struct {
+	{{pascalCase moduleName}}ID  string
+	OldName string
+	NewName string
+}

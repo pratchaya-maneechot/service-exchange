@@ -1,0 +1,98 @@
+/**
+ * {{pascalCase commandName}}Command - Command
+ */
+
+package command
+
+import (
+	"context"
+	"fmt"
+	"log/slog"
+	"time"
+
+	"github.com/pratchaya-maneechot/service-exchange/apps/users/internal/config"
+	"github.com/pratchaya-maneechot/service-exchange/apps/users/internal/domain/shared/ids"
+	"github.com/pratchaya-maneechot/service-exchange/apps/users/internal/domain/{{kebabCase moduleName}}"
+	"github.com/pratchaya-maneechot/service-exchange/apps/users/internal/infra/observability"
+
+	"go.opentelemetry.io/otel"
+	"go.opentelemetry.io/otel/attribute"
+	"go.opentelemetry.io/otel/codes"
+	"go.opentelemetry.io/otel/trace"
+)
+
+// {{pascalCase commandName}}Command represents the input for the {{pascalCase commandName}} operation.
+type {{pascalCase commandName}}Command struct {
+	// Add command-specific fields here, e.g.,
+	// ID         ids.{{pascalCase moduleName}}ID `json:"id"`
+	// Name       string                   `json:"name" validate:"required"`
+	// Description string                   `json:"description,omitempty"`
+}
+
+// {{pascalCase commandName}}Dto represents the output after the {{pascalCase commandName}} operation.
+type {{pascalCase commandName}}Dto struct {
+	ID string `json:"id"` // Example: ID of the created/updated resource
+}
+
+// {{pascalCase commandName}}CommandHandler handles the {{pascalCase commandName}}Command.
+type {{pascalCase commandName}}CommandHandler struct {
+	{{camelCase moduleName}}Repo {{kebabCase moduleName}}.{{pascalCase moduleName}}Repository
+	logger                 *slog.Logger
+	config                 *config.Config
+	tracer                 trace.Tracer
+}
+
+// New{{pascalCase commandName}}CommandHandler creates a new instance of {{pascalCase commandName}}CommandHandler.
+func New{{pascalCase commandName}}CommandHandler(
+	{{camelCase moduleName}}Repo {{kebabCase moduleName}}.{{pascalCase moduleName}}Repository,
+	logger *slog.Logger,
+	cfg *config.Config,
+) *{{pascalCase commandName}}CommandHandler {
+	return &{{pascalCase commandName}}CommandHandler{
+		{{camelCase moduleName}}Repo: {{camelCase moduleName}}Repo,
+		logger:                 logger.With(slog.String("component", "{{pascalCase commandName}}CommandHandler")),
+		config:                 cfg,
+		tracer:                 otel.Tracer(fmt.Sprintf("%s.command-handler", cfg.Name)),
+	}
+}
+
+// Handle executes the {{pascalCase commandName}}Command.
+func (h *{{pascalCase commandName}}CommandHandler) Handle(ctx context.Context, cmd {{pascalCase commandName}}Command) (*{{pascalCase commandName}}Dto, error) {
+	logger := observability.GetLoggerFromContext(ctx).With(slog.String("command", "{{pascalCase commandName}}"))
+
+	ctx, span := h.tracer.Start(ctx, "{{pascalCase commandName}}Command.Handle", trace.WithSpanKind(trace.SpanKindServer))
+	defer span.End()
+
+	// Example: span.SetAttributes(attribute.String("{{camelCase moduleName}}.name", cmd.Name))
+
+	// Implement your business logic here.
+	// For example:
+	// 1. Validate command input.
+	// 2. Check for existing resource if needed.
+	// 3. Create/load domain entity.
+	//    new{{pascalCase moduleName}}, err := {{kebabCase moduleName}}.New{{pascalCase moduleName}}(
+	//        ids.New{{pascalCase moduleName}}ID(), // Generate a new ID for new entities
+	//        cmd.Name,
+	//        cmd.Description,
+	//    )
+	//    if err != nil {
+	//        span.SetStatus(codes.Error, "Failed to create {{kebabCase moduleName}} domain model")
+	//        span.RecordError(err)
+	//        logger.Error("Failed to create domain {{kebabCase moduleName}}", slog.Any("error", err))
+	//        return nil, err
+	//    }
+	// 4. Save the domain entity using the repository.
+	//    if err := h.{{camelCase moduleName}}Repo.Save(ctx, new{{pascalCase moduleName}}); err != nil {
+	//        span.SetStatus(codes.Error, "Failed to save {{kebabCase moduleName}}")
+	//        span.RecordError(err)
+	//        logger.Error("Failed to save {{kebabCase moduleName}} to repository", slog.Any("error", err))
+	//        return nil, err
+	//    }
+
+	span.SetStatus(codes.Ok, "{{pascalCase commandName}} handled successfully")
+	logger.Info("{{pascalCase commandName}} executed successfully.")
+
+	return &{{pascalCase commandName}}Dto{
+		ID: "example-id", // Replace with actual ID if generated
+	}, nil
+}

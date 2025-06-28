@@ -1,0 +1,107 @@
+/**
+ * {{pascalCase queryName}}Query - Query
+ */
+
+package query
+
+import (
+	"context"
+	"errors"
+	"fmt"
+	"log/slog"
+	"time"
+
+	"github.com/pratchaya-maneechot/service-exchange/apps/users/internal/config"
+	"github.com/pratchaya-maneechot/service-exchange/apps/users/internal/domain/shared/ids"
+	"github.com/pratchaya-maneechot/service-exchange/apps/users/internal/domain/{{kebabCase moduleName}}" // Adjust this path if module is not in domain
+	"github.com/pratchaya-maneechot/service-exchange/apps/users/internal/infra/observability"
+
+	"go.opentelemetry.io/otel"
+	"go.opentelemetry.io/otel/attribute"
+	"go.opentelemetry.io/otel/codes"
+	"go.opentelemetry.io/otel/trace"
+)
+
+// {{pascalCase queryName}}Query represents the input for the {{pascalCase queryName}} operation.
+type {{pascalCase queryName}}Query struct {
+	// Add query-specific fields here, e.g.,
+	// ID ids.{{pascalCase moduleName}}ID `json:"id"`
+	// Name string                 `json:"name"`
+}
+
+// {{pascalCase moduleName}}Dto represents the data transfer object for {{pascalCase moduleName}}.
+type {{pascalCase moduleName}}Dto struct {
+	// Example fields
+	ID          string    `json:"id"`
+	Name        string    `json:"name"`
+	Description *string   `json:"description,omitempty"`
+	CreatedAt   time.Time `json:"createdAt"`
+	UpdatedAt   time.Time `json:"updatedAt"`
+	// Add other fields relevant to your DTO
+}
+
+// {{pascalCase queryName}}QueryHandler handles the {{pascalCase queryName}}Query.
+type {{pascalCase queryName}}QueryHandler struct {
+	{{camelCase moduleName}}Repo {{kebabCase moduleName}}.{{pascalCase moduleName}}Repository
+	logger                 *slog.Logger
+	config                 *config.Config
+	tracer                 trace.Tracer
+}
+
+// New{{pascalCase queryName}}QueryHandler creates a new instance of {{pascalCase queryName}}QueryHandler.
+func New{{pascalCase queryName}}QueryHandler(
+	{{camelCase moduleName}}Repo {{kebabCase moduleName}}.{{pascalCase moduleName}}Repository,
+	logger *slog.Logger,
+	cfg *config.Config,
+) *{{pascalCase queryName}}QueryHandler {
+	handlerLogger := logger.With(slog.String("component", "{{pascalCase queryName}}QueryHandler"))
+	return &{{pascalCase queryName}}QueryHandler{
+		{{camelCase moduleName}}Repo: {{camelCase moduleName}}Repo,
+		logger:                 handlerLogger,
+		config:                 cfg,
+		tracer:                 otel.Tracer(fmt.Sprintf("%s.query-handler", cfg.Name)),
+	}
+}
+
+// Handle executes the {{pascalCase queryName}}Query.
+func (h *{{pascalCase queryName}}QueryHandler) Handle(ctx context.Context, qry {{pascalCase queryName}}Query) (*{{pascalCase moduleName}}Dto, error) {
+	logger := observability.GetLoggerFromContext(ctx).With(slog.String("query", "{{pascalCase queryName}}"))
+
+	ctx, span := h.tracer.Start(ctx, "{{pascalCase queryName}}Query.Handle", trace.WithSpanKind(trace.SpanKindServer))
+	defer span.End()
+
+	// Example: span.SetAttributes(attribute.String("query.id", string(qry.ID)))
+
+	// Implement your query logic here.
+	// For example:
+	// {{camelCase moduleName}}, err := h.{{camelCase moduleName}}Repo.FindByID(ctx, qry.ID)
+	// if err != nil {
+	// 	if errors.Is(err, {{kebabCase moduleName}}.Err{{pascalCase moduleName}}NotFound) { // Define this error in your domain
+	// 		span.SetStatus(codes.Ok, "{{pascalCase moduleName}} not found")
+	// 		span.SetAttributes(attribute.String("error.type", string({{kebabCase moduleName}}.Err{{pascalCase moduleName}}NotFound.Code)))
+	// 		logger.Warn({{kebabCase moduleName}}.Err{{pascalCase moduleName}}NotFound.Message, "id", string(qry.ID))
+	// 		return nil, {{kebabCase moduleName}}.Err{{pascalCase moduleName}}NotFound
+	// 	}
+	// 	span.SetStatus(codes.Error, "Failed to retrieve {{kebabCase moduleName}}")
+	// 	span.RecordError(err)
+	// 	logger.Error("Failed to retrieve {{kebabCase moduleName}} from repository", "id", string(qry.ID), slog.Any("error", err))
+	// 	return nil, err
+	// }
+
+	// span.SetStatus(codes.Ok, "{{pascalCase moduleName}} retrieved")
+	// logger.Info("{{pascalCase moduleName}} retrieved successfully.")
+
+	// return &{{pascalCase moduleName}}Dto{
+	// 	ID: {{camelCase moduleName}}.ID,
+	// 	Name: {{camelCase moduleName}}.Name,
+	// 	// Map other fields from domain entity to DTO
+	// }, nil
+
+	// Placeholder response
+	return &{{pascalCase moduleName}}Dto{
+		ID:        "example-id",
+		Name:      "Example {{pascalCase moduleName}}",
+		CreatedAt: time.Now(),
+		UpdatedAt: time.Now(),
+	}, nil
+}

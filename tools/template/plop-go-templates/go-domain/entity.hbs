@@ -1,0 +1,87 @@
+/**
+ * {{pascalCase moduleName}} - Domain Entity
+ */
+
+package {{kebabCase moduleName}}
+
+import (
+	"fmt"
+	"time"
+
+	"github.com/pratchaya-maneechot/service-exchange/apps/users/internal/domain/shared/ids"
+)
+
+// {{pascalCase moduleName}} represents a {{pascalCase moduleName}} entity in the domain.
+type {{pascalCase moduleName}} struct {
+	ID          ids.{{pascalCase moduleName}}ID
+	Name        string
+	Description *string
+	CreatedAt   time.Time
+	UpdatedAt   time.Time
+	// Add other fields as needed for your domain entity
+}
+
+// New{{pascalCase moduleName}} creates a new {{pascalCase moduleName}} entity.
+// This is where you'd typically enforce invariants and business rules for creation.
+func New{{pascalCase moduleName}}(
+	id ids.{{pascalCase moduleName}}ID,
+	name string,
+	description *string,
+) (*{{pascalCase moduleName}}, error) {
+	if id == "" {
+		return nil, ErrInvalid{{pascalCase moduleName}}ID
+	}
+	if name == "" {
+		return nil, ErrInvalid{{pascalCase moduleName}}Name // Example: Name cannot be empty
+	}
+
+	now := time.Now()
+	return &{{pascalCase moduleName}}{
+		ID:          id,
+		Name:        name,
+		Description: description,
+		CreatedAt:   now,
+		UpdatedAt:   now,
+	}, nil
+}
+
+// New{{pascalCase moduleName}}FromRepository creates a {{pascalCase moduleName}} entity from repository data.
+// Use this constructor when loading from persistence, without applying creation business rules.
+func New{{pascalCase moduleName}}FromRepository(
+	id ids.{{pascalCase moduleName}}ID,
+	name string,
+	description string, // May need to handle pgtype.Text or *string from DB
+	createdAt time.Time,
+	updatedAt time.Time,
+) (*{{pascalCase moduleName}}, error) {
+	// Basic validation for loaded data
+	if id == "" || name == "" {
+		return nil, fmt.Errorf("invalid {{kebabCase moduleName}} data loaded from repository")
+	}
+
+	var desc *string
+	if description != "" { // Assuming empty string means nil
+		desc = &description
+	}
+
+	return &{{pascalCase moduleName}}{
+		ID:          id,
+		Name:        name,
+		Description: desc,
+		CreatedAt:   createdAt,
+		UpdatedAt:   updatedAt,
+	}, nil
+}
+
+// UpdateName updates the name of the {{pascalCase moduleName}}.
+// This method encapsulates business logic for updating the entity.
+func (e *{{pascalCase moduleName}}) UpdateName(newName string) error {
+	if newName == "" {
+		return ErrInvalid{{pascalCase moduleName}}Name
+	}
+	e.Name = newName
+	e.UpdatedAt = time.Now()
+	return nil
+}
+
+// Add other domain-specific methods here to encapsulate business logic.

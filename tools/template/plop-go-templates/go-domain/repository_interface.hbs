@@ -1,0 +1,20 @@
+/**
+ * {{pascalCase moduleName}}Repository - Domain Repository Interface
+ */
+
+package {{kebabCase moduleName}}
+
+import (
+	"context"
+
+	"github.com/pratchaya-maneechot/service-exchange/apps/users/internal/domain/shared/ids"
+)
+
+// {{pascalCase moduleName}}Repository defines the interface for interacting with {{pascalCase moduleName}} persistence.
+type {{pascalCase moduleName}}Repository interface {
+	Save(ctx context.Context, {{camelCase moduleName}} *{{pascalCase moduleName}}) error
+	FindByID(ctx context.Context, id ids.{{pascalCase moduleName}}ID) (*{{pascalCase moduleName}}, error)
+	// Add other repository methods as needed, e.g.,
+	// ExistsByName(ctx context.Context, name string) (bool, error)
+	// Delete(ctx context.Context, id ids.{{pascalCase moduleName}}ID) error
+}

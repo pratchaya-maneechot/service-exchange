@@ -1,0 +1,205 @@
+/**
+ * {{pascalCase moduleName}}Repository - Infrastructure Repository Implementation
+ */
+
+package repositories
+
+import (
+	"context"
+	"errors"
+	"fmt"
+	"log/slog"
+
+	"github.com/pratchaya-maneechot/service-exchange/apps/users/internal/config"
+	"github.com/pratchaya-maneechot/service-exchange/apps/users/internal/domain/shared/ids"
+	"github.com/pratchaya-maneechot/service-exchange/apps/users/internal/domain/{{kebabCase moduleName}}" // Adjust this path
+	"github.com/pratchaya-maneechot/service-exchange/apps/users/internal/infra/observability"
+	"github.com/pratchaya-maneechot/service-exchange/apps/users/internal/infra/persistence/postgres"
+	db "github.com/pratchaya-maneechot/service-exchange/apps/users/internal/infra/persistence/postgres/generated" // Assumes sqlc generated code
+	// "github.com/pratchaya-maneechot/service-exchange/apps/users/pkg/utils" // For MapToByte if needed
+
+	"go.opentelemetry.io/otel"
+	"go.opentelemetry.io/otel/attribute"
+	"go.opentelemetry.io/otel/codes"
+	"go.opentelemetry.io/otel/trace"
+
+	"github.com/jackc/pgx/v5/pgconn"
+	"github.com/jackc/pgx/v5/pgxpool"
+	"github.com/jackc/pgx/v5/pgtype"
+)
+
+type {{camelCase moduleName}}Repository struct {
+	db     *db.Queries
+	pool   *pgxpool.Pool
+	logger *slog.Logger
+	config *config.Config
+	tracer trace.Tracer
+}
+
+// NewPostgres{{pascalCase moduleName}}Repository creates a new PostgreSQL repository for {{pascalCase moduleName}}.
+func NewPostgres{{pascalCase moduleName}}Repository(cfg *config.Config, dbPool *postgres.DBPool, logger *slog.Logger) {{kebabCase moduleName}}.{{pascalCase moduleName}}Repository {
+	repoLogger := logger.With(slog.String("component", "{{camelCase moduleName}}Repository"))
+	return &{{camelCase moduleName}}Repository{
+		db:     db.New(dbPool.Pool),
+		pool:   dbPool.Pool,
+		logger: repoLogger,
+		config: cfg,
+		tracer: otel.Tracer(fmt.Sprintf("%s.repository", cfg.Name)),
+	}
+}
+
+// Save saves or updates a {{pascalCase moduleName}} in the database.
+func (r *{{camelCase moduleName}}Repository) Save(ctx context.Context, {{camelCase moduleName}} *{{kebabCase moduleName}}.{{pascalCase moduleName}}) (err error) {
+	logger := observability.GetLoggerFromContext(ctx).With(slog.String("{{camelCase moduleName}}_id", string({{camelCase moduleName}}.ID)))
+
+	ctx, span := r.tracer.Start(ctx, "{{pascalCase moduleName}}Repository.Save", trace.WithSpanKind(trace.SpanKindClient))
+	defer span.End()
+
+	span.SetAttributes(
+		attribute.String("db.system", "postgresql"),
+		attribute.String("db.{{camelCase moduleName}}_id", string({{camelCase moduleName}}.ID)),
+	)
+
+	tx, err := r.pool.Begin(ctx)
+	if err != nil {
+		span.SetStatus(codes.Error, "Failed to begin transaction")
+		span.RecordError(err)
+		logger.Error("Failed to begin DB transaction", slog.Any("error", err))
+		return fmt.Errorf("failed to begin transaction: %w", err)
+	}
+	defer func() {
+		if r := recover(); r != nil {
+			tx.Rollback(ctx)
+			panic(r)
+		} else if err != nil {
+			if rollbackErr := tx.Rollback(ctx); rollbackErr != nil {
+				logger.Error("Failed to rollback DB transaction", slog.Any("error", rollbackErr))
+			}
+		} else {
+			if commitErr := tx.Commit(ctx); commitErr != nil {
+				span.SetStatus(codes.Error, "Failed to commit transaction")
+				span.RecordError(commitErr)
+				logger.Error("Failed to commit DB transaction", slog.Any("error", commitErr))
+				err = fmt.Errorf("failed to commit transaction: %w", commitErr)
+			}
+		}
+	}()
+
+	qtx := r.db.WithTx(tx)
+	{{camelCase moduleName}}ID := encodeUID(string({{camelCase moduleName}}.ID)) // Assuming you have an encodeUID helper
+
+	// Example: Check if {{pascalCase moduleName}} exists by ID
+	// exists, err := qtx.{{pascalCase moduleName}}ExistsByID(ctx, {{camelCase moduleName}}ID)
+	// if err != nil {
+	// 	span.SetStatus(codes.Error, "Failed to check {{camelCase moduleName}} existence in DB")
+	// 	span.RecordError(err)
+	// 	logger.Error("Failed to check {{camelCase moduleName}} existence in DB", slog.Any("error", err))
+	// 	return fmt.Errorf("failed to check {{camelCase moduleName}} existence: %w", err)
+	// }
+
+	// if exists {
+	// 	logger.Debug("Updating existing {{camelCase moduleName}} in DB.")
+	// 	input := db.Update{{pascalCase moduleName}}Params{
+	// 		ID: {{camelCase moduleName}}ID,
+	// 		Name: {{camelCase moduleName}}.Name,
+	// 		// ... map other fields
+	// 	}
+	// 	if _, err = qtx.Update{{pascalCase moduleName}}(ctx, input); err != nil {
+	// 		span.SetStatus(codes.Error, "Failed to update {{camelCase moduleName}} in DB")
+	// 		span.RecordError(err)
+	// 		logger.Error("Failed to update {{camelCase moduleName}} in DB", slog.Any("error", err))
+	// 		return fmt.Errorf("failed to update {{camelCase moduleName}}: %w", err)
+	// 	}
+	// } else {
+	logger.Debug("Creating new {{camelCase moduleName}} in DB.")
+	input := db.Create{{pascalCase moduleName}}Params{ // Assumes a generated Create{{pascalCase moduleName}}Params struct
+		ID:   {{camelCase moduleName}}ID,
+		Name: {{camelCase moduleName}}.Name,
+		// ... map other fields
+	}
+	if _, err = qtx.Create{{pascalCase moduleName}}(ctx, input); err != nil {
+		var pgErr *pgconn.PgError
+		if errors.As(err, &pgErr) {
+			if pgErr.Code == "23505" { // Unique violation
+				logger.Warn("Duplicate entry during {{camelCase moduleName}} creation in DB.", slog.Any("error", err))
+				span.SetStatus(codes.Error, "Duplicate {{camelCase moduleName}} entry in DB")
+				return {{kebabCase moduleName}}.Err{{pascalCase moduleName}}AlreadyExists // Define this error in your domain
+			}
+		}
+		span.SetStatus(codes.Error, "Failed to create {{camelCase moduleName}} in DB")
+		span.RecordError(err)
+		logger.Error("Failed to insert {{camelCase moduleName}} in DB", slog.Any("error", err))
+		return fmt.Errorf("failed to insert {{camelCase moduleName}}: %w", err)
+	}
+	// }
+
+	span.SetStatus(codes.Ok, "{{pascalCase moduleName}} saved to DB")
+	logger.Info("{{pascalCase moduleName}} saved successfully to DB.")
+	return nil
+}
+
+// FindByID retrieves a {{pascalCase moduleName}} by its ID from the database.
+func (r *{{camelCase moduleName}}Repository) FindByID(ctx context.Context, id ids.{{pascalCase moduleName}}ID) (*{{kebabCase moduleName}}.{{pascalCase moduleName}}, error) {
+	logger := observability.GetLoggerFromContext(ctx).With(slog.String("{{camelCase moduleName}}_id", string(id)))
+
+	ctx, span := r.tracer.Start(ctx, "{{pascalCase moduleName}}Repository.FindByID", trace.WithSpanKind(trace.SpanKindClient))
+	defer span.End()
+
+	span.SetAttributes(
+		attribute.String("db.system", "postgresql"),
+		attribute.String("db.{{camelCase moduleName}}_id", string(id)),
+	)
+
+	dbID := encodeUID(string(id)) // Assuming encodeUID helper
+	row, err := r.db.Get{{pascalCase moduleName}}ByID(ctx, dbID) // Assumes a generated Get{{pascalCase moduleName}}ByID function
+	if err != nil {
+		if errors.Is(err, pgx.ErrNoRows) {
+			span.SetStatus(codes.Ok, "{{pascalCase moduleName}} not found")
+			logger.Warn("{{pascalCase moduleName}} not found in DB", slog.Any("error", err))
+			return nil, {{kebabCase moduleName}}.Err{{pascalCase moduleName}}NotFound // Define this error
+		}
+		span.SetStatus(codes.Error, "Failed to retrieve {{pascalCase moduleName}} from DB")
+		span.RecordError(err)
+		logger.Error("Failed to retrieve {{pascalCase moduleName}} from DB", slog.Any("error", err))
+		return nil, fmt.Errorf("failed to get {{camelCase moduleName}} by ID: %w", err)
+	}
+
+	// Map DB row to domain entity
+	{{camelCase moduleName}}Entity, err := {{kebabCase moduleName}}.New{{pascalCase moduleName}}FromRepository(
+		ids.{{pascalCase moduleName}}ID(decodeUID(row.ID)), // Assuming decodeUID helper
+		row.Name,
+		row.Description.String, // Assuming nullable string
+		row.CreatedAt,
+		row.UpdatedAt,
+		// ... map other fields
+	)
+	if err != nil {
+		span.SetStatus(codes.Error, "Failed to build domain {{camelCase moduleName}} from DB row")
+		span.RecordError(err)
+		logger.Error("Failed to build domain {{camelCase moduleName}} from DB row", slog.Any("error", err))
+		return nil, fmt.Errorf("failed to build domain {{camelCase moduleName}}: %w", err)
+	}
+
+	span.SetStatus(codes.Ok, "{{pascalCase moduleName}} retrieved from DB")
+	logger.Info("{{pascalCase moduleName}} retrieved successfully from DB.")
+	return {{camelCase moduleName}}Entity, nil
+}
+
+// encodeUID converts a string UUID to pgtype.UUID. (Placeholder, adjust as needed based on your ID type)
+func encodeUID(s string) pgtype.UUID {
+	// Example: assuming string is a valid UUID format
+	uid, err := uuid.Parse(s)
+	if err != nil {
+		// Handle error, perhaps log or return a zero UUID
+		return pgtype.UUID{}
+	}
+	return pgtype.UUID{Bytes: uid, Valid: true}
+}
+
+// decodeUID converts pgtype.UUID to string. (Placeholder, adjust as needed)
+func decodeUID(uid pgtype.UUID) string {
+	if !uid.Valid {
+		return ""
+	}
+	return uid.Bytes.String()
+}

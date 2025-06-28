@@ -1,0 +1,11 @@
+/**
+ * {{pascalCase moduleName}} - Domain Errors
+ */
+
+package {{kebabCase moduleName}}
+
+import errs "github.com/pratchaya-maneechot/service-exchange/apps/users/pkg/errors"
+
+var (
+	Err{{pascalCase moduleName}}NotFound = errs.New(errs.CodeNotFound, "{{kebabCase moduleName}} not found")
+)

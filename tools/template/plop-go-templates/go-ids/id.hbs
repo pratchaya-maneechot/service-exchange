@@ -1,0 +1,27 @@
+/**
+ * {{pascalCase moduleName}}ID - Shared Domain ID
+ */
+
+package ids
+
+import (
+	"github.com/google/uuid"
+)
+
+// {{pascalCase moduleName}}ID represents a unique identifier for a {{pascalCase moduleName}} entity.
+type {{pascalCase moduleName}}ID string
+
+// New{{pascalCase moduleName}}ID generates a new UUID-based {{pascalCase moduleName}}ID.
+func New{{pascalCase moduleName}}ID() {{pascalCase moduleName}}ID {
+	return {{pascalCase moduleName}}ID(uuid.New().String())
+}
+
+// IsEmpty checks if the {{pascalCase moduleName}}ID is empty.
+func (id {{pascalCase moduleName}}ID) IsEmpty() bool {
+	return id == ""
+}
+
+// String returns the string representation of the {{pascalCase moduleName}}ID.
+func (id {{pascalCase moduleName}}ID) String() string {
+	return string(id)
+}
