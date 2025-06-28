@@ -6,16 +6,17 @@ import (
 	"time"
 
 	"github.com/google/wire"
-	"github.com/pratchaya-maneechot/service-exchange/apps/users/internal/app/handler"
+	"github.com/pratchaya-maneechot/service-exchange/apps/users/internal/app/command"
+	"github.com/pratchaya-maneechot/service-exchange/apps/users/internal/app/query"
 	"github.com/pratchaya-maneechot/service-exchange/apps/users/internal/config"
 	"github.com/pratchaya-maneechot/service-exchange/apps/users/internal/domain/role"
 	"github.com/pratchaya-maneechot/service-exchange/apps/users/internal/infra/observability"
 )
 
 type App struct {
-	GetUserProfileQueryHandler      *handler.GetUserProfileQueryHandler
-	RegisterUserCommandHandler      *handler.RegisterUserCommandHandler
-	UpdateUserProfileCommandHandler *handler.UpdateUserProfileCommandHandler
+	GetUserProfileQueryHandler      *query.GetUserProfileQueryHandler
+	RegisterUserCommandHandler      *command.RegisterUserCommandHandler
+	UpdateUserProfileCommandHandler *command.UpdateUserProfileCommandHandler
 	RoleCacheService                *role.RoleCacheService
 }
 
@@ -33,9 +34,9 @@ func ProvideRoleCacheService(
 }
 
 var AppModuleSet = wire.NewSet(
-	handler.NewGetUserProfileQueryHandler,
-	handler.NewRegisterUserCommandHandler,
-	handler.NewUpdateUserProfileCommandHandler,
+	query.NewGetUserProfileQueryHandler,
+	command.NewRegisterUserCommandHandler,
+	command.NewUpdateUserProfileCommandHandler,
 	ProvideRoleCacheService,
 	wire.Struct(new(App), "*"),
 )
