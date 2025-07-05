@@ -20,7 +20,6 @@ import (
 	"go.opentelemetry.io/otel/codes"
 	"go.opentelemetry.io/otel/trace"
 
-	"github.com/google/uuid"
 	"github.com/jackc/pgx/v5"
 	"github.com/jackc/pgx/v5/pgconn"
 	"github.com/jackc/pgx/v5/pgtype"
@@ -58,7 +57,7 @@ func (r *userRepository) FindByID(ctx context.Context, id ids.UserID) (*user.Use
 		attribute.String("db.user_id", string(id)),
 	)
 
-	raw, err := r.db.FindUserByID(ctx, encodeUID(string(id)))
+	raw, err := r.db.FindUserByID(ctx, postgres.EncodeUID(string(id)))
 	if err != nil {
 		if errors.Is(err, pgx.ErrNoRows) {
 			span.SetStatus(codes.Ok, "User not found in DB")
@@ -82,16 +81,7 @@ func (r *userRepository) FindByID(ctx context.Context, id ids.UserID) (*user.Use
 		logger.Error("Failed to query user roles from DB", "user_id", string(id), slog.Any("error", err))
 		return nil, fmt.Errorf("failed to query user roles: %w", err)
 	}
-
-	var roles []role.Role
-	for _, ur := range uRoles {
-		idVal := uint(ur.ID)
-		roles = append(roles, role.Role{
-			ID:          &idVal,
-			Name:        role.RoleName(ur.Name),
-			Description: *ur.Description,
-		})
-	}
+	var roles = utils.ArrayMap(uRoles, func(ur db.Role) role.Role { return *role.NewRoleFromRepository(uint(ur.ID), ur.Name, ur.Description) })
 
 	span.SetStatus(codes.Ok, "User loaded from DB")
 	span.SetAttributes(attribute.Bool("user.found", true))
@@ -102,29 +92,24 @@ func (r *userRepository) FindByID(ctx context.Context, id ids.UserID) (*user.Use
 		logger.Error("Failed to unmarshal user preferences", "user_id", raw.ID, slog.Any("error", err))
 		return nil, fmt.Errorf("failed to marshal preferences to JSON: %w", err)
 	}
-	userID := ids.UserID(raw.ID.String())
-	return &user.User{
-		ID:           userID,
-		LineUserID:   raw.LineUserID,
-		Email:        *raw.Email,
-		PasswordHash: "",
-		Status:       user.UserStatus(raw.Status),
-		CreatedAt:    raw.CreatedAt.Time,
-		UpdatedAt:    raw.UpdatedAt.Time,
-		LastLoginAt:  &raw.LastLoginAt.Time,
-		Profile: user.Profile{
-			UserID:      userID,
-			DisplayName: *raw.DisplayName,
-			FirstName:   raw.FirstName,
-			LastName:    raw.LastName,
-			Bio:         raw.Bio,
-			AvatarURL:   raw.AvatarUrl,
-			PhoneNumber: raw.PhoneNumber,
-			Address:     raw.Address,
-			Preferences: *preferencesJSON,
-		},
-		Roles: roles,
-	}, nil
+	resp, err := user.NewUserFromRepository(
+		raw.ID.String(),
+		raw.LineUserID,
+		raw.Email,
+		raw.PasswordHash,
+		raw.Status,
+		raw.CreatedAt.Time,
+		raw.UpdatedAt.Time,
+		&raw.LastLoginAt.Time,
+		user.NewProfileFromRepository(raw.ID.String(), raw.DisplayName, *preferencesJSON),
+		roles,
+	)
+	if err != nil {
+		logger.Error("Failed to transform json to user model", "user_id", raw.ID, slog.Any("error", err))
+		return nil, fmt.Errorf("failed to transform json to user model: %w", err)
+	}
+
+	return resp, nil
 }
 
 func (r *userRepository) FindByLineUserID(ctx context.Context, lineUserID string) (*user.User, error) {
@@ -148,6 +133,16 @@ func (r *userRepository) FindByLineUserID(ctx context.Context, lineUserID string
 		return nil, fmt.Errorf("failed to query user full aggregate by LINE User ID: %w", err)
 	}
 
+	uRoles, err := r.db.GetUserRoles(ctx, raw.ID)
+	if err != nil {
+		span.SetStatus(codes.Error, "Failed to query user roles from DB")
+		span.RecordError(err)
+		span.SetAttributes(attribute.String("error.type", "db_read_error"))
+		logger.Error("Failed to query user roles from DB", "user_id", raw.ID, slog.Any("error", err))
+		return nil, fmt.Errorf("failed to query user roles: %w", err)
+	}
+	var roles = utils.ArrayMap(uRoles, func(ur db.Role) role.Role { return *role.NewRoleFromRepository(uint(ur.ID), ur.Name, ur.Description) })
+
 	span.SetStatus(codes.Ok, "User found by Line User ID successfully")
 	logger.Debug("Successfully found user by Line User ID", "line_user_id", lineUserID)
 
@@ -156,28 +151,24 @@ func (r *userRepository) FindByLineUserID(ctx context.Context, lineUserID string
 		logger.Error("Failed to unmarshal user preferences for Line User ID", "line_user_id", lineUserID, slog.Any("error", err))
 		return nil, fmt.Errorf("failed to marshal preferences to JSON: %w", err)
 	}
-	userID := ids.UserID(raw.ID.String())
-	return &user.User{
-		ID:           userID,
-		LineUserID:   lineUserID,
-		Email:        *raw.Email,
-		PasswordHash: "",
-		Status:       user.UserStatus(raw.Status),
-		CreatedAt:    raw.CreatedAt.Time,
-		UpdatedAt:    raw.UpdatedAt.Time,
-		LastLoginAt:  &raw.LastLoginAt.Time,
-		Profile: user.Profile{
-			UserID:      userID,
-			DisplayName: *raw.DisplayName,
-			FirstName:   raw.FirstName,
-			LastName:    raw.LastName,
-			Bio:         raw.Bio,
-			AvatarURL:   raw.AvatarUrl,
-			PhoneNumber: raw.PhoneNumber,
-			Address:     raw.Address,
-			Preferences: *preferencesJSON,
-		},
-	}, nil
+	resp, err := user.NewUserFromRepository(
+		raw.ID.String(),
+		raw.LineUserID,
+		raw.Email,
+		raw.PasswordHash,
+		raw.Status,
+		raw.CreatedAt.Time,
+		raw.UpdatedAt.Time,
+		&raw.LastLoginAt.Time,
+		user.NewProfileFromRepository(raw.ID.String(), raw.DisplayName, *preferencesJSON),
+		roles,
+	)
+	if err != nil {
+		logger.Error("Failed to transform json to user model", "user_id", raw.ID, slog.Any("error", err))
+		return nil, fmt.Errorf("failed to transform json to user model: %w", err)
+	}
+
+	return resp, nil
 }
 
 func (r *userRepository) Save(ctx context.Context, u *user.User) (err error) {
@@ -219,7 +210,7 @@ func (r *userRepository) Save(ctx context.Context, u *user.User) (err error) {
 	}()
 
 	qtx := r.db.WithTx(tx)
-	userID := encodeUID(string(u.ID))
+	userID := postgres.EncodeUID(string(u.ID))
 
 	userExists, err := qtx.UserExistsByID(ctx, userID)
 	if err != nil {
@@ -235,8 +226,8 @@ func (r *userRepository) Save(ctx context.Context, u *user.User) (err error) {
 		input := db.UpdateUserParams{
 			ID:           userID,
 			LineUserID:   u.LineUserID,
-			Email:        &u.Email,
-			PasswordHash: &u.PasswordHash,
+			Email:        u.Email,
+			PasswordHash: u.PasswordHash,
 			Status:       string(u.Status),
 			LastLoginAt:  pgtype.Timestamptz{Time: *u.LastLoginAt, Valid: u.LastLoginAt != nil},
 		}
@@ -252,8 +243,8 @@ func (r *userRepository) Save(ctx context.Context, u *user.User) (err error) {
 		input := db.CreateUserParams{
 			ID:           userID,
 			LineUserID:   u.LineUserID,
-			Email:        &u.Email,
-			PasswordHash: &u.PasswordHash,
+			Email:        u.Email,
+			PasswordHash: u.PasswordHash,
 			Status:       string(u.Status),
 		}
 		if _, err = qtx.CreateUser(ctx, input); err != nil {
@@ -313,14 +304,14 @@ func (r *userRepository) Save(ctx context.Context, u *user.User) (err error) {
 	for _, r := range u.Roles {
 		roleInput := db.CreateUserRoleParams{
 			UserID: userID,
-			RoleID: int32(*r.ID),
+			RoleID: int32(r.ID),
 		}
 		if _, err := qtx.CreateUserRole(ctx, roleInput); err != nil {
 			span.SetStatus(codes.Error, "Failed to add role in DB")
 			span.RecordError(err)
 			span.SetAttributes(attribute.String("error.type", "db_write_error"))
 			logger.Error("Failed to add user role in DB", slog.Any("error", err), "role_id", r.ID)
-			return fmt.Errorf("failed to add role %d to user %s: %w", *r.ID, u.ID, err)
+			return fmt.Errorf("failed to add role %d to user %s: %w", r.ID, u.ID, err)
 		}
 	}
 
@@ -367,7 +358,7 @@ func (r *userRepository) CreateUserRole(ctx context.Context, usrId ids.UserID, r
 	span.SetAttributes(attribute.String("db.user_id", string(usrId)), attribute.Int("db.role_id", int(roleID)))
 	logger.Debug("Attempting to create user role")
 
-	userID := encodeUID(string(usrId))
+	userID := postgres.EncodeUID(string(usrId))
 
 	roleExists, err := r.db.RoleExistsByID(ctx, int32(roleID))
 	if err != nil {
@@ -441,17 +432,5 @@ func (r *userRepository) GetRoleByID(ctx context.Context, roleID uint) (*role.Ro
 	span.SetStatus(codes.Ok, "Role found successfully")
 	logger.Debug("Successfully found role by ID")
 
-	id := uint(raw.ID)
-	return &role.Role{
-		ID:          &id,
-		Name:        role.RoleName(raw.Name),
-		Description: *raw.Description,
-	}, nil
-}
-
-func encodeUID(str string) pgtype.UUID {
-	return pgtype.UUID{
-		Bytes: [16]byte(uuid.MustParse(str)),
-		Valid: true,
-	}
+	return role.NewRoleFromRepository(roleID, raw.Name, raw.Description), nil
 }

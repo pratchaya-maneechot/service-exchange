@@ -1,7 +1,7 @@
 package role
 
-import "errors"
+import errs "github.com/pratchaya-maneechot/service-exchange/apps/users/pkg/errors"
 
 var (
-	ErrRoleNotFound = errors.New("role not found")
+	ErrRoleNotFound = errs.New(errs.CodeNotFound, "role not found")
 )

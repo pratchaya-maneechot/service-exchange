@@ -26,7 +26,7 @@ type GetUserProfileQuery struct {
 type UserProfileDTO struct {
 	UserID      string          `json:"userId"`
 	LineUserID  string          `json:"lineUserId"`
-	Email       string          `json:"email"`
+	Email       *string         `json:"email"`
 	DisplayName string          `json:"displayName"`
 	FirstName   *string         `json:"firstName,omitempty"`
 	LastName    *string         `json:"lastName,omitempty"`

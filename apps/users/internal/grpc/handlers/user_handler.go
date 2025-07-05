@@ -40,8 +40,8 @@ func RegisUserGRPCHandler(
 func (h *UserGRPCHandler) RegisterUser(ctx context.Context, req *pb.RegisterUserRequest) (*pb.RegisterUserResponse, error) {
 	cmd := command.RegisterUserCommand{
 		LineUserID:  req.GetLineUserId(),
-		Email:       req.GetEmail().GetValue(),
-		Password:    req.GetPassword().GetValue(),
+		Email:       utils.GetValuePointer(req.GetEmail()),
+		Password:    utils.GetValuePointer(req.GetPassword()),
 		DisplayName: req.GetDisplayName(),
 		AvatarURL:   req.GetAvatarUrl().GetValue(),
 	}

@@ -34,7 +34,7 @@ func MapUserProfileDTOToProto(internalDTO *query.UserProfileDTO) *pb.UserProfile
 	protoDTO := &pb.UserProfileDTO{
 		UserId:      internalDTO.UserID,
 		LineUserId:  internalDTO.LineUserID,
-		Email:       internalDTO.Email,
+		Email:       utils.GetStringValue(internalDTO.Email),
 		DisplayName: internalDTO.DisplayName,
 		Status:      MapDomainUserStatusToProto(internalDTO.Status),
 		IsVerified:  internalDTO.IsVerified,

@@ -9,16 +9,15 @@ const (
 )
 
 type Role struct {
-	ID          *uint // Internal ID, managed by system (e.g., from a static lookup table)
+	ID          uint
 	Name        RoleName
-	Description string
+	Description *string
 }
 
-// NewRole creates a new Role instance.
-func NewRole(id *uint, name RoleName, description string) Role {
-	return Role{
+func NewRoleFromRepository(id uint, name string, description *string) *Role {
+	return &Role{
 		ID:          id,
-		Name:        name,
+		Name:        RoleName(name),
 		Description: description,
 	}
 }

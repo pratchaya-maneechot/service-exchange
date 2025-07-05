@@ -20,11 +20,11 @@ import (
 )
 
 type RegisterUserCommand struct {
-	LineUserID  string `json:"lineUserId" validate:"required"`
-	Email       string `json:"email,omitempty" validate:"omitempty,email"`
-	Password    string `json:"password,omitempty"`
-	DisplayName string `json:"displayName" validate:"required"`
-	AvatarURL   string `json:"avatarUrl,omitempty"`
+	LineUserID  string  `json:"lineUserId" validate:"required"`
+	Email       *string `json:"email,omitempty" validate:"omitempty,email"`
+	Password    *string `json:"password,omitempty"`
+	DisplayName string  `json:"displayName" validate:"required"`
+	AvatarURL   string  `json:"avatarUrl,omitempty"`
 }
 
 type RegisterUserDto struct {

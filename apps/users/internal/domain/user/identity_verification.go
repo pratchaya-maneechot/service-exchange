@@ -3,11 +3,10 @@ package user
 import (
 	"time"
 
-	"github.com/google/uuid" // For internal ID
+	"github.com/google/uuid"
 	"github.com/pratchaya-maneechot/service-exchange/apps/users/internal/domain/shared/ids"
 )
 
-// VerificationStatus defines the status of an identity verification.
 type VerificationStatus string
 
 const (
@@ -16,7 +15,6 @@ const (
 	VerificationStatusRejected VerificationStatus = "REJECTED"
 )
 
-// DocumentType defines the type of document submitted for verification.
 type DocumentType string
 
 const (
@@ -25,22 +23,19 @@ const (
 	DocumentTypeDriverLicense DocumentType = "DRIVER_LICENSE"
 )
 
-// IdentityVerification represents an identity verification attempt by a user.
-// It's an Entity within the User Aggregate.
 type IdentityVerification struct {
-	ID              uuid.UUID  // Internal ID for this verification record
-	UserID          ids.UserID // Reference to the owning User Aggregate
+	ID              uuid.UUID
+	UserID          ids.UserID
 	DocumentType    DocumentType
-	DocumentNumber  string   // Encrypted or hashed for PII
-	DocumentURLs    []string // URLs to uploaded document images
+	DocumentNumber  string
+	DocumentURLs    []string
 	Status          VerificationStatus
 	SubmittedAt     time.Time
-	VerifiedAt      *time.Time  // Nullable
-	ReviewerID      *ids.UserID // ID of the admin who reviewed it (can be internal UserID)
-	RejectionReason string      // Reason if rejected
+	VerifiedAt      *time.Time
+	ReviewerID      *ids.UserID
+	RejectionReason string
 }
 
-// NewIdentityVerification creates a new IdentityVerification entity.
 func NewIdentityVerification(
 	userID ids.UserID,
 	docType DocumentType,
@@ -60,13 +55,44 @@ func NewIdentityVerification(
 		DocumentType:    docType,
 		DocumentNumber:  docNumber,
 		DocumentURLs:    docURLs,
-		Status:          VerificationStatusPending, // Initial status
+		Status:          VerificationStatusPending,
 		SubmittedAt:     time.Now(),
 		RejectionReason: "",
 	}, nil
 }
 
-// Approve marks the identity verification as approved.
+func NewIdentityVerificationFromRepository(
+	id string,
+	userID string,
+	documentType string,
+	documentNumber string,
+	documentURLs []string,
+	status string,
+	submittedAt time.Time,
+	verifiedAt *time.Time,
+	reviewerID *string,
+	rejectionReason string,
+) (*IdentityVerification, error) {
+	var rwID *ids.UserID
+	if reviewerID != nil {
+		uid := ids.UserID(*reviewerID)
+		rwID = &uid
+	}
+
+	return &IdentityVerification{
+		ID:              uuid.MustParse(id),
+		UserID:          ids.UserID(userID),
+		DocumentType:    DocumentType(documentType),
+		DocumentNumber:  documentNumber,
+		DocumentURLs:    documentURLs,
+		Status:          VerificationStatus(status),
+		SubmittedAt:     submittedAt,
+		VerifiedAt:      verifiedAt,
+		ReviewerID:      rwID,
+		RejectionReason: rejectionReason,
+	}, nil
+}
+
 func (iv *IdentityVerification) Approve(reviewerID ids.UserID) error {
 	if iv.Status != VerificationStatusPending {
 		return ErrInvalidVerificationStatusTransition
@@ -78,7 +104,6 @@ func (iv *IdentityVerification) Approve(reviewerID ids.UserID) error {
 	return nil
 }
 
-// Reject marks the identity verification as rejected.
 func (iv *IdentityVerification) Reject(reviewerID ids.UserID, reason string) error {
 	if iv.Status != VerificationStatusPending {
 		return ErrInvalidVerificationStatusTransition

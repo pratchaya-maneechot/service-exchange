@@ -113,7 +113,7 @@ func (rcm *RoleCacheService) loadRolesFromDB(ctx context.Context) error {
 	newRolesByID := make(map[uint]Role)
 
 	for _, r := range allRoles {
-		newRolesByID[*r.ID] = r
+		newRolesByID[r.ID] = r
 		newRolesByName[r.Name] = r
 	}
 

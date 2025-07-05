@@ -3,7 +3,7 @@ SELECT
     u.id, u.line_user_id, u.email, u.password_hash, u.status, u.created_at, u.updated_at, u.last_login_at,
     p.display_name, p.first_name, p.last_name, p.bio, p.avatar_url, p.phone_number, p.address, p.preferences
 FROM users u
-LEFT JOIN profiles p ON u.id = p.user_id
+JOIN profiles p ON u.id = p.user_id
 WHERE u.id = $1;
 
 -- name: FindUserByLineUserID :one
@@ -11,7 +11,7 @@ SELECT
     u.id, u.line_user_id, u.email, u.password_hash, u.status, u.created_at, u.updated_at, u.last_login_at,
     p.display_name, p.first_name, p.last_name, p.bio, p.avatar_url, p.phone_number, p.address, p.preferences
 FROM users u
-LEFT JOIN profiles p ON u.id = p.user_id
+JOIN profiles p ON u.id = p.user_id
 WHERE u.line_user_id = $1;
 
 -- name: UserExistsByLineUserID :one

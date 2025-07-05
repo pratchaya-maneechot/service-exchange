@@ -7,6 +7,7 @@ import (
 	"github.com/pratchaya-maneechot/service-exchange/apps/users/internal/domain/role"
 	"github.com/pratchaya-maneechot/service-exchange/apps/users/internal/infra/persistence/postgres"
 	db "github.com/pratchaya-maneechot/service-exchange/apps/users/internal/infra/persistence/postgres/generated"
+	"github.com/pratchaya-maneechot/service-exchange/apps/users/pkg/utils"
 )
 
 // PostgresRoleReader implements the role.RoleReader interface.
@@ -30,14 +31,5 @@ func (r *roleReader) GetAllRoles(ctx context.Context) ([]role.Role, error) {
 		return nil, err
 	}
 
-	var dRoles []role.Role
-	for _, v := range roles {
-		id := uint(v.ID)
-		dRoles = append(dRoles, role.Role{
-			ID:          &id,
-			Name:        role.RoleName(v.Name),
-			Description: *v.Description,
-		})
-	}
-	return dRoles, nil
+	return utils.ArrayMap(roles, func(dr db.Role) role.Role { return *role.NewRoleFromRepository(uint(dr.ID), dr.Name, dr.Description) }), nil
 }
