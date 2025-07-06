@@ -7,7 +7,7 @@ import (
 	"github.com/pratchaya-maneechot/service-exchange/apps/users/internal/domain/role"
 	"github.com/pratchaya-maneechot/service-exchange/apps/users/internal/infra/persistence/postgres"
 	db "github.com/pratchaya-maneechot/service-exchange/apps/users/internal/infra/persistence/postgres/generated"
-	"github.com/pratchaya-maneechot/service-exchange/apps/users/pkg/utils"
+	"github.com/pratchaya-maneechot/service-exchange/libs/utils"
 )
 
 // PostgresRoleReader implements the role.RoleReader interface.

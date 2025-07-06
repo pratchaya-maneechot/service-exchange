@@ -1,6 +1,6 @@
 package ids
 
-import "github.com/pratchaya-maneechot/service-exchange/apps/users/pkg/utils"
+import "github.com/pratchaya-maneechot/service-exchange/libs/utils"
 
 type UserID string
 

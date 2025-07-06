@@ -5,4 +5,5 @@ use (
 	./apps/users
 	./libs/bus
 	./libs/grpc
+	./libs/utils
 )

@@ -12,7 +12,7 @@ import (
 	"github.com/pratchaya-maneechot/service-exchange/apps/users/internal/domain/shared/ids"
 	"github.com/pratchaya-maneechot/service-exchange/apps/users/internal/domain/user"
 	"github.com/pratchaya-maneechot/service-exchange/apps/users/internal/infra/observability"
-	"github.com/pratchaya-maneechot/service-exchange/apps/users/pkg/utils"
+	"github.com/pratchaya-maneechot/service-exchange/libs/utils"
 	"go.opentelemetry.io/otel"
 	"go.opentelemetry.io/otel/attribute"
 	"go.opentelemetry.io/otel/codes"

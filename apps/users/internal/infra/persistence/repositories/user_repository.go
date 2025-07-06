@@ -13,7 +13,7 @@ import (
 	"github.com/pratchaya-maneechot/service-exchange/apps/users/internal/infra/observability"
 	"github.com/pratchaya-maneechot/service-exchange/apps/users/internal/infra/persistence/postgres"
 	db "github.com/pratchaya-maneechot/service-exchange/apps/users/internal/infra/persistence/postgres/generated"
-	"github.com/pratchaya-maneechot/service-exchange/apps/users/pkg/utils"
+	"github.com/pratchaya-maneechot/service-exchange/libs/utils"
 
 	"go.opentelemetry.io/otel"
 	"go.opentelemetry.io/otel/attribute"
