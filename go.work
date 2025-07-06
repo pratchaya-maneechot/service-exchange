@@ -7,4 +7,5 @@ use (
 	./libs/grpc
 	./libs/utils
 	./libs/errors
+	./libs/infra
 )

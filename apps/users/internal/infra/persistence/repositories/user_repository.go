@@ -11,8 +11,8 @@ import (
 	"github.com/pratchaya-maneechot/service-exchange/apps/users/internal/domain/shared/ids"
 	"github.com/pratchaya-maneechot/service-exchange/apps/users/internal/domain/user"
 	"github.com/pratchaya-maneechot/service-exchange/apps/users/internal/infra/observability"
-	"github.com/pratchaya-maneechot/service-exchange/apps/users/internal/infra/persistence/postgres"
 	db "github.com/pratchaya-maneechot/service-exchange/apps/users/internal/infra/persistence/postgres/generated"
+	libPostgres "github.com/pratchaya-maneechot/service-exchange/libs/infra/postgres"
 	"github.com/pratchaya-maneechot/service-exchange/libs/utils"
 
 	"go.opentelemetry.io/otel"
@@ -34,7 +34,7 @@ type userRepository struct {
 	tracer trace.Tracer
 }
 
-func NewPostgresUserRepository(cfg *config.Config, dbPool *postgres.DBPool, logger *slog.Logger) user.UserRepository {
+func NewPostgresUserRepository(cfg *config.Config, dbPool *libPostgres.DBPool, logger *slog.Logger) user.UserRepository {
 	repoLogger := logger.With(slog.String("component", "userRepository"))
 	return &userRepository{
 		db:     db.New(dbPool.Pool),
@@ -57,7 +57,7 @@ func (r *userRepository) FindByID(ctx context.Context, id ids.UserID) (*user.Use
 		attribute.String("db.user_id", string(id)),
 	)
 
-	raw, err := r.db.FindUserByID(ctx, postgres.EncodeUID(string(id)))
+	raw, err := r.db.FindUserByID(ctx, libPostgres.EncodeUID(string(id)))
 	if err != nil {
 		if errors.Is(err, pgx.ErrNoRows) {
 			span.SetStatus(codes.Ok, "User not found in DB")
@@ -210,7 +210,7 @@ func (r *userRepository) Save(ctx context.Context, u *user.User) (err error) {
 	}()
 
 	qtx := r.db.WithTx(tx)
-	userID := postgres.EncodeUID(string(u.ID))
+	userID := libPostgres.EncodeUID(string(u.ID))
 
 	userExists, err := qtx.UserExistsByID(ctx, userID)
 	if err != nil {
@@ -358,7 +358,7 @@ func (r *userRepository) CreateUserRole(ctx context.Context, usrId ids.UserID, r
 	span.SetAttributes(attribute.String("db.user_id", string(usrId)), attribute.Int("db.role_id", int(roleID)))
 	logger.Debug("Attempting to create user role")
 
-	userID := postgres.EncodeUID(string(usrId))
+	userID := libPostgres.EncodeUID(string(usrId))
 
 	roleExists, err := r.db.RoleExistsByID(ctx, int32(roleID))
 	if err != nil {

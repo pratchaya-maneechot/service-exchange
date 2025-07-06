@@ -8,21 +8,22 @@ import (
 	sdktrace "go.opentelemetry.io/otel/sdk/trace"
 
 	"github.com/google/wire"
-	"github.com/pratchaya-maneechot/service-exchange/apps/users/internal/infra/observability" // Make sure this path is correct
+	"github.com/pratchaya-maneechot/service-exchange/apps/users/internal/infra/observability"
 	"github.com/pratchaya-maneechot/service-exchange/apps/users/internal/infra/observability/metrics"
 	"github.com/pratchaya-maneechot/service-exchange/apps/users/internal/infra/persistence/postgres"
 	"github.com/pratchaya-maneechot/service-exchange/apps/users/internal/infra/persistence/readers"
 	"github.com/pratchaya-maneechot/service-exchange/apps/users/internal/infra/persistence/repositories"
+	libPostgres "github.com/pratchaya-maneechot/service-exchange/libs/infra/postgres"
 )
 
 type Infra struct {
-	dbPool *postgres.DBPool
+	dbPool *libPostgres.DBPool
 	logger *slog.Logger
 	tracer *sdktrace.TracerProvider
 }
 
 func NewInfra(
-	dbPool *postgres.DBPool,
+	dbPool *libPostgres.DBPool,
 	logger *slog.Logger,
 	tracer *sdktrace.TracerProvider,
 ) *Infra {
@@ -33,7 +34,6 @@ func NewInfra(
 	}
 }
 
-// Close method for graceful shutdown of infrastructure components
 func (i *Infra) Close(ctx context.Context) error {
 	var errs []error
 	if i.tracer != nil {
