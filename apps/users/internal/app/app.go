@@ -10,7 +10,7 @@ import (
 	"github.com/pratchaya-maneechot/service-exchange/apps/users/internal/app/query"
 	"github.com/pratchaya-maneechot/service-exchange/apps/users/internal/config"
 	"github.com/pratchaya-maneechot/service-exchange/apps/users/internal/domain/role"
-	"github.com/pratchaya-maneechot/service-exchange/apps/users/internal/infra/observability"
+	"github.com/pratchaya-maneechot/service-exchange/libs/infra/observability"
 )
 
 type App struct {

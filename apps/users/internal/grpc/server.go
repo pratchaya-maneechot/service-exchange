@@ -7,9 +7,9 @@ import (
 	"github.com/pratchaya-maneechot/service-exchange/apps/users/internal/config"
 	"github.com/pratchaya-maneechot/service-exchange/apps/users/internal/grpc/handlers"
 	"github.com/pratchaya-maneechot/service-exchange/apps/users/internal/grpc/middleware"
-	"github.com/pratchaya-maneechot/service-exchange/apps/users/internal/infra/observability"
 	"github.com/pratchaya-maneechot/service-exchange/libs/bus"
 	libGrpc "github.com/pratchaya-maneechot/service-exchange/libs/grpc"
+	"github.com/pratchaya-maneechot/service-exchange/libs/infra/observability"
 	"google.golang.org/grpc"
 	"google.golang.org/grpc/keepalive"
 )

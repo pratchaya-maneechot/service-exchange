@@ -4,7 +4,6 @@ import (
 	"context"
 	"fmt"
 
-	"github.com/pratchaya-maneechot/service-exchange/apps/users/internal/config"
 	"go.opentelemetry.io/otel"
 	"go.opentelemetry.io/otel/attribute"
 	"go.opentelemetry.io/otel/exporters/otlp/otlptrace/otlptracegrpc"
@@ -14,10 +13,13 @@ import (
 	semconv "go.opentelemetry.io/otel/semconv/v1.26.0"
 )
 
-// NewTracer initializes the OpenTelemetry TracerProvider.
-// It sets up an OTLP gRPC exporter to send traces to a collector.
-func NewTracer(ctx context.Context, config *config.Config) (*sdktrace.TracerProvider, error) {
-	// Exporter configuration (e.g., to an OpenTelemetry Collector)
+type TracerConfig struct {
+	Name        string
+	Version     string
+	Environment string
+}
+
+func NewTracer(ctx context.Context, config TracerConfig) (*sdktrace.TracerProvider, error) {
 	traceExporter, err := otlptracegrpc.New(ctx,
 		otlptracegrpc.WithInsecure(),
 	)
@@ -28,10 +30,10 @@ func NewTracer(ctx context.Context, config *config.Config) (*sdktrace.TracerProv
 	res, err := resource.Merge(
 		resource.Default(),
 		resource.NewWithAttributes(
-			semconv.SchemaURL, // ใช้ SchemaURL จาก semconv ที่ Import มา
+			semconv.SchemaURL,
 			semconv.ServiceName(config.Name),
 			semconv.ServiceVersion(config.Version),
-			attribute.String("environment", "development"), // Or get from env variable
+			attribute.String("environment", config.Environment),
 		),
 	)
 	if err != nil {
@@ -39,7 +41,7 @@ func NewTracer(ctx context.Context, config *config.Config) (*sdktrace.TracerProv
 	}
 
 	tp := sdktrace.NewTracerProvider(
-		sdktrace.WithSampler(sdktrace.AlwaysSample()), // Sample all traces for simplicity in dev
+		sdktrace.WithSampler(sdktrace.AlwaysSample()),
 		sdktrace.WithResource(res),
 		sdktrace.WithSpanProcessor(sdktrace.NewBatchSpanProcessor(traceExporter)),
 	)

@@ -5,17 +5,22 @@ import (
 	"log/slog"
 	"os"
 
-	"github.com/pratchaya-maneechot/service-exchange/apps/users/internal/config"
 	"go.opentelemetry.io/otel/trace"
 )
 
-func NewLogger(cfg *config.Config) *slog.Logger {
+type LoggerConfig struct {
+	Level     string
+	Format    string
+	AddSource bool
+}
+
+func NewLogger(cfg LoggerConfig) *slog.Logger {
 	var handler slog.Handler
 	opts := &slog.HandlerOptions{
-		Level:     parseLevel(cfg.Logging.Level),
-		AddSource: !cfg.IsDevelopment(),
+		Level:     parseLevel(cfg.Level),
+		AddSource: cfg.AddSource,
 	}
-	switch cfg.Logging.Format {
+	switch cfg.Format {
 	case "json":
 		handler = slog.NewJSONHandler(os.Stdout, opts)
 	default:
@@ -52,7 +57,7 @@ func parseLevel(level string) slog.Level {
 	}
 }
 
-func GetLoggerFromContext(ctx context.Context) *slog.Logger {
+func LoggerFromCtx(ctx context.Context) *slog.Logger {
 	var bLogger *slog.Logger
 	if logger, ok := ctx.Value("logger").(*slog.Logger); ok {
 		bLogger = logger

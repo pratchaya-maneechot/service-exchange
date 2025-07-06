@@ -1,22 +1,26 @@
-package metrics
+package observability
 
 import (
 	"context"
 	"net/http"
 	"time"
 
-	"github.com/pratchaya-maneechot/service-exchange/apps/users/internal/config"
 	"github.com/prometheus/client_golang/prometheus/promhttp"
 )
 
+type MetricConfig struct {
+	Path    string
+	Addr    string
+	Enabled bool
+}
 type MetricServer struct {
 	server *http.Server
-	config config.MetricsConfig
+	config MetricConfig
 }
 
-func NewServer(cfg *config.Config) *MetricServer {
+func NewMetricServer(cfg MetricConfig) *MetricServer {
 	mux := http.NewServeMux()
-	mux.Handle(cfg.Metrics.Path, promhttp.Handler())
+	mux.Handle(cfg.Path, promhttp.Handler())
 	mux.HandleFunc("/health", func(w http.ResponseWriter, r *http.Request) {
 		w.WriteHeader(http.StatusOK)
 		w.Write([]byte("OK"))
@@ -24,12 +28,12 @@ func NewServer(cfg *config.Config) *MetricServer {
 
 	return &MetricServer{
 		server: &http.Server{
-			Addr:         cfg.Metrics.Address,
+			Addr:         cfg.Addr,
 			Handler:      mux,
 			ReadTimeout:  10 * time.Second,
 			WriteTimeout: 10 * time.Second,
 		},
-		config: cfg.Metrics,
+		config: cfg,
 	}
 }
 

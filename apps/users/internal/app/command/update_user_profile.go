@@ -8,7 +8,7 @@ import (
 	"github.com/pratchaya-maneechot/service-exchange/apps/users/internal/config"
 	"github.com/pratchaya-maneechot/service-exchange/apps/users/internal/domain/shared/ids"
 	"github.com/pratchaya-maneechot/service-exchange/apps/users/internal/domain/user"
-	"github.com/pratchaya-maneechot/service-exchange/apps/users/internal/infra/observability"
+	"github.com/pratchaya-maneechot/service-exchange/libs/infra/observability"
 
 	"go.opentelemetry.io/otel"
 	"go.opentelemetry.io/otel/attribute"
@@ -52,7 +52,7 @@ func NewUpdateUserProfileCommandHandler(
 	}
 }
 func (h *UpdateUserProfileCommandHandler) Handle(ctx context.Context, cmd UpdateUserProfileCommand) (*UpdateUserProfileDto, error) {
-	logger := observability.GetLoggerFromContext(ctx).With(slog.String("user_id", string(cmd.UserID)))
+	logger := observability.LoggerFromCtx(ctx).With(slog.String("user_id", string(cmd.UserID)))
 
 	ctx, span := h.tracer.Start(ctx, "UpdateUserProfileCommand.Handle", trace.WithSpanKind(trace.SpanKindServer))
 	defer span.End()

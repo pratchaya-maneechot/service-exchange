@@ -10,8 +10,8 @@ import (
 	"github.com/pratchaya-maneechot/service-exchange/apps/users/internal/domain/role"
 	"github.com/pratchaya-maneechot/service-exchange/apps/users/internal/domain/shared/ids"
 	"github.com/pratchaya-maneechot/service-exchange/apps/users/internal/domain/user"
-	"github.com/pratchaya-maneechot/service-exchange/apps/users/internal/infra/observability"
 	db "github.com/pratchaya-maneechot/service-exchange/apps/users/internal/infra/persistence/postgres/generated"
+	"github.com/pratchaya-maneechot/service-exchange/libs/infra/observability"
 	libPostgres "github.com/pratchaya-maneechot/service-exchange/libs/infra/postgres"
 	"github.com/pratchaya-maneechot/service-exchange/libs/utils"
 
@@ -46,7 +46,7 @@ func NewPostgresUserRepository(cfg *config.Config, dbPool *libPostgres.DBPool, l
 }
 
 func (r *userRepository) FindByID(ctx context.Context, id ids.UserID) (*user.User, error) {
-	logger := observability.GetLoggerFromContext(ctx).With(slog.String("user_id", string(id)))
+	logger := observability.LoggerFromCtx(ctx).With(slog.String("user_id", string(id)))
 
 	ctx, span := r.tracer.Start(ctx, "UserRepository.FindByID", trace.WithSpanKind(trace.SpanKindClient))
 	defer span.End()
@@ -113,7 +113,7 @@ func (r *userRepository) FindByID(ctx context.Context, id ids.UserID) (*user.Use
 }
 
 func (r *userRepository) FindByLineUserID(ctx context.Context, lineUserID string) (*user.User, error) {
-	logger := observability.GetLoggerFromContext(ctx).With(slog.String("method", "FindByLineUserID"))
+	logger := observability.LoggerFromCtx(ctx).With(slog.String("method", "FindByLineUserID"))
 	ctx, span := r.tracer.Start(ctx, "UserRepository.FindByLineUserID", trace.WithSpanKind(trace.SpanKindClient))
 	defer span.End()
 
@@ -172,7 +172,7 @@ func (r *userRepository) FindByLineUserID(ctx context.Context, lineUserID string
 }
 
 func (r *userRepository) Save(ctx context.Context, u *user.User) (err error) {
-	logger := observability.GetLoggerFromContext(ctx).With(slog.String("user_id", string(u.ID)))
+	logger := observability.LoggerFromCtx(ctx).With(slog.String("user_id", string(u.ID)))
 
 	ctx, span := r.tracer.Start(ctx, "UserRepository.Save", trace.WithSpanKind(trace.SpanKindClient))
 	defer span.End()
@@ -321,7 +321,7 @@ func (r *userRepository) Save(ctx context.Context, u *user.User) (err error) {
 }
 
 func (r *userRepository) ExistsByLineUserID(ctx context.Context, lineUserID string) (bool, error) {
-	logger := observability.GetLoggerFromContext(ctx).With(slog.String("line_user_id", lineUserID))
+	logger := observability.LoggerFromCtx(ctx).With(slog.String("line_user_id", lineUserID))
 
 	ctx, span := r.tracer.Start(ctx, "UserRepository.ExistsByLineUserID", trace.WithSpanKind(trace.SpanKindClient))
 	defer span.End()
@@ -347,7 +347,7 @@ func (r *userRepository) ExistsByLineUserID(ctx context.Context, lineUserID stri
 }
 
 func (r *userRepository) CreateUserRole(ctx context.Context, usrId ids.UserID, roleID uint) error {
-	logger := observability.GetLoggerFromContext(ctx).With(
+	logger := observability.LoggerFromCtx(ctx).With(
 		slog.String("method", "CreateUserRole"),
 		slog.String("user_id", string(usrId)),
 		slog.Uint64("role_id", uint64(roleID)),
@@ -406,7 +406,7 @@ func (r *userRepository) CreateUserRole(ctx context.Context, usrId ids.UserID, r
 }
 
 func (r *userRepository) GetRoleByID(ctx context.Context, roleID uint) (*role.Role, error) {
-	logger := observability.GetLoggerFromContext(ctx).With(
+	logger := observability.LoggerFromCtx(ctx).With(
 		slog.String("method", "GetRoleByID"),
 		slog.Uint64("role_id", uint64(roleID)),
 	)

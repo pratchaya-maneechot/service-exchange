@@ -1,4 +1,3 @@
-// infra/observability/metrics_recorder.go
 package observability
 
 import (

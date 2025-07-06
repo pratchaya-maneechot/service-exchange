@@ -8,11 +8,11 @@ import (
 	sdktrace "go.opentelemetry.io/otel/sdk/trace"
 
 	"github.com/google/wire"
-	"github.com/pratchaya-maneechot/service-exchange/apps/users/internal/infra/observability"
-	"github.com/pratchaya-maneechot/service-exchange/apps/users/internal/infra/observability/metrics"
+	"github.com/pratchaya-maneechot/service-exchange/apps/users/internal/config"
 	"github.com/pratchaya-maneechot/service-exchange/apps/users/internal/infra/persistence/postgres"
 	"github.com/pratchaya-maneechot/service-exchange/apps/users/internal/infra/persistence/readers"
 	"github.com/pratchaya-maneechot/service-exchange/apps/users/internal/infra/persistence/repositories"
+	"github.com/pratchaya-maneechot/service-exchange/libs/infra/observability"
 	libPostgres "github.com/pratchaya-maneechot/service-exchange/libs/infra/postgres"
 )
 
@@ -54,13 +54,41 @@ func (i *Infra) Close(ctx context.Context) error {
 	return nil
 }
 
+func ProvideMetricServer(cfg *config.Config) *observability.MetricServer {
+	return observability.NewMetricServer(observability.MetricConfig{
+		Path:    cfg.Metrics.Path,
+		Addr:    cfg.Metrics.Address,
+		Enabled: cfg.Metrics.Enabled,
+	})
+}
+
+func ProvideLogger(cfg *config.Config) *slog.Logger {
+	return observability.NewLogger(observability.LoggerConfig{
+		Level:     cfg.Logging.Level,
+		Format:    cfg.Logging.Format,
+		AddSource: !cfg.IsDevelopment(),
+	})
+}
+
+func ProvideTracer(ctx context.Context, cfg *config.Config) (*sdktrace.TracerProvider, error) {
+	return observability.NewTracer(ctx, observability.TracerConfig{
+		Name:        cfg.Name,
+		Version:     cfg.Version,
+		Environment: cfg.Environment,
+	})
+}
+
+func ProvideMetricRecorder() observability.MetricsRecorder {
+	return observability.NewPrometheusMetricsRecorder()
+}
+
 var InfraModuleSet = wire.NewSet(
 	postgres.NewDBConn,
 	repositories.NewPostgresUserRepository,
 	readers.NewPostgresRoleReader,
-	metrics.NewServer,
-	observability.NewLogger,
-	observability.NewTracer,
-	observability.NewPrometheusMetricsRecorder,
+	ProvideMetricServer,
+	ProvideMetricRecorder,
+	ProvideLogger,
+	ProvideTracer,
 	NewInfra,
 )

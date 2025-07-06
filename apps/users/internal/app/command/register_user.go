@@ -11,7 +11,7 @@ import (
 	"github.com/pratchaya-maneechot/service-exchange/apps/users/internal/domain/role"
 	"github.com/pratchaya-maneechot/service-exchange/apps/users/internal/domain/shared/ids"
 	"github.com/pratchaya-maneechot/service-exchange/apps/users/internal/domain/user"
-	"github.com/pratchaya-maneechot/service-exchange/apps/users/internal/infra/observability"
+	"github.com/pratchaya-maneechot/service-exchange/libs/infra/observability"
 
 	"go.opentelemetry.io/otel"
 	"go.opentelemetry.io/otel/attribute"
@@ -55,7 +55,7 @@ func NewRegisterUserCommandHandler(
 }
 
 func (h *RegisterUserCommandHandler) Handle(ctx context.Context, cmd RegisterUserCommand) (*RegisterUserDto, error) {
-	logger := observability.GetLoggerFromContext(ctx).With(slog.String("line_user_id", cmd.LineUserID))
+	logger := observability.LoggerFromCtx(ctx).With(slog.String("line_user_id", cmd.LineUserID))
 
 	ctx, span := h.tracer.Start(ctx, "RegisterUserCommand.Handle", trace.WithSpanKind(trace.SpanKindServer))
 	defer span.End()

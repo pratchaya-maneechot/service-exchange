@@ -7,7 +7,7 @@ import (
 	"sync"
 	"time"
 
-	"github.com/pratchaya-maneechot/service-exchange/apps/users/internal/infra/observability"
+	"github.com/pratchaya-maneechot/service-exchange/libs/infra/observability"
 	"go.opentelemetry.io/otel"
 	"go.opentelemetry.io/otel/codes"
 )

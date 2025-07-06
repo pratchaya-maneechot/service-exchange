@@ -11,7 +11,7 @@ import (
 	"github.com/pratchaya-maneechot/service-exchange/apps/users/internal/domain/role"
 	"github.com/pratchaya-maneechot/service-exchange/apps/users/internal/domain/shared/ids"
 	"github.com/pratchaya-maneechot/service-exchange/apps/users/internal/domain/user"
-	"github.com/pratchaya-maneechot/service-exchange/apps/users/internal/infra/observability"
+	"github.com/pratchaya-maneechot/service-exchange/libs/infra/observability"
 	"github.com/pratchaya-maneechot/service-exchange/libs/utils"
 	"go.opentelemetry.io/otel"
 	"go.opentelemetry.io/otel/attribute"
@@ -64,7 +64,7 @@ func NewGetUserProfileQueryHandler(
 }
 
 func (h *GetUserProfileQueryHandler) Handle(ctx context.Context, qry GetUserProfileQuery) (*UserProfileDTO, error) {
-	logger := observability.GetLoggerFromContext(ctx).With(slog.String("user_id", string(qry.UserID)))
+	logger := observability.LoggerFromCtx(ctx).With(slog.String("user_id", string(qry.UserID)))
 
 	ctx, span := h.tracer.Start(ctx, "GetUserProfileQuery.Handle", trace.WithSpanKind(trace.SpanKindServer))
 	defer span.End()

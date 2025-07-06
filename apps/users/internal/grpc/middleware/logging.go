@@ -6,7 +6,7 @@ import (
 	"log/slog"
 	"time"
 
-	"github.com/pratchaya-maneechot/service-exchange/apps/users/internal/infra/observability" // For MetricsRecorder
+	"github.com/pratchaya-maneechot/service-exchange/libs/infra/observability"
 	"go.opentelemetry.io/otel"
 	"go.opentelemetry.io/otel/codes"
 	"go.opentelemetry.io/otel/trace"
