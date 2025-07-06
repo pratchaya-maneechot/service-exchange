@@ -1,27 +1,21 @@
-package bus
+package query
 
 import (
 	"context"
 	"fmt"
 	"reflect"
-
-	"github.com/pratchaya-maneechot/service-exchange/apps/users/pkg/bus/handler"
 )
 
-// QueryBus is a concrete implementation of QueryBus that stores handlers in memory.
 type queryBus struct {
-	handlers handler.BusHandler
+	handlers QueryBusHandler
 }
 
-// NewQueryBus creates a new QueryBus.
-func NewQueryBus() QueryBus {
+func NewQueryBus(h QueryBusHandler) QueryBus {
 	return &queryBus{
-		handlers: handler.NewInMemoryBusHandler(),
+		handlers: h,
 	}
 }
 
-// RegisterHandler registers a QueryHandler for a specific Query type.
-// It performs strict type checking to ensure the handler correctly implements QueryHandler[Q, R].
 func (b *queryBus) RegisterHandler(queryType Query, handler any) error {
 	queryReflectType := reflect.TypeOf(queryType)
 	handlerReflectType := reflect.TypeOf(handler)
@@ -44,18 +38,16 @@ func (b *queryBus) RegisterHandler(queryType Query, handler any) error {
 		})
 	}
 
-	// Method's signature (Input: receiver, ctx, query; Output: R, error)
 	expectedIn := []reflect.Type{
-		reflect.TypeOf((*context.Context)(nil)).Elem(), // ctx
-		queryReflectType, // query
+		reflect.TypeOf((*context.Context)(nil)).Elem(),
+		queryReflectType,
 	}
 	expectedOut := []reflect.Type{
-		nil,                                  // Placeholder for generic result type R
-		reflect.TypeOf((*error)(nil)).Elem(), // error
+		nil,
+		reflect.TypeOf((*error)(nil)).Elem(),
 	}
 
-	// Check input parameters
-	if handleMethod.Type.NumIn() != len(expectedIn)+1 { // +1 for the receiver
+	if handleMethod.Type.NumIn() != len(expectedIn)+1 {
 		b.handlers.Delete(queryReflectType)
 		panic(ErrInvalidQueryHandler{
 			HandlerType: handlerReflectType,
@@ -64,7 +56,7 @@ func (b *queryBus) RegisterHandler(queryType Query, handler any) error {
 		})
 	}
 	for i, expected := range expectedIn {
-		if handleMethod.Type.In(i+1) != expected { // +1 for the receiver
+		if handleMethod.Type.In(i+1) != expected {
 			b.handlers.Delete(queryReflectType)
 			panic(ErrInvalidQueryHandler{
 				HandlerType: handlerReflectType,
@@ -74,7 +66,6 @@ func (b *queryBus) RegisterHandler(queryType Query, handler any) error {
 		}
 	}
 
-	// Check output parameters
 	if handleMethod.Type.NumOut() != len(expectedOut) {
 		b.handlers.Delete(queryReflectType)
 		panic(ErrInvalidQueryHandler{
@@ -83,9 +74,8 @@ func (b *queryBus) RegisterHandler(queryType Query, handler any) error {
 			Reason:      fmt.Sprintf("Handle method has %d output parameters, expected %d", handleMethod.Type.NumOut(), len(expectedOut)),
 		})
 	}
-	// For queries, the first return type (R) is generic, so we can't directly check its type against a concrete `expected` `reflect.Type`.
-	// We only ensure it exists and the second is `error`.
-	if handleMethod.Type.Out(1) != expectedOut[1] { // Check if the second return value is error
+
+	if handleMethod.Type.Out(1) != expectedOut[1] {
 		b.handlers.Delete(queryReflectType)
 		panic(ErrInvalidQueryHandler{
 			HandlerType: handlerReflectType,
@@ -97,7 +87,6 @@ func (b *queryBus) RegisterHandler(queryType Query, handler any) error {
 	return nil
 }
 
-// Dispatch dispatches a Query to its registered handler and returns the result.
 func (b *queryBus) Dispatch(ctx context.Context, query Query) (Result, error) {
 	queryType := reflect.TypeOf(query)
 
@@ -123,12 +112,12 @@ func (b *queryBus) Dispatch(ctx context.Context, query Query) (Result, error) {
 	results := handleMethod.Call(args)
 
 	var err error
-	if len(results) > 1 && !results[1].IsNil() { // Error is the second return value
+	if len(results) > 1 && !results[1].IsNil() {
 		err = results[1].Interface().(error)
 	}
 
 	var result any
-	if len(results) > 0 { // Result is the first return value
+	if len(results) > 0 {
 		result = results[0].Interface()
 	}
 

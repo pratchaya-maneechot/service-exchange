@@ -10,7 +10,7 @@ import (
 
 // QueryBus is a concrete implementation of QueryBus that stores handlers in memory.
 type queryBus struct {
-	handlers handler.BusHandler
+	handlers BusHandler
 }
 
 // NewQueryBus creates a new QueryBus.

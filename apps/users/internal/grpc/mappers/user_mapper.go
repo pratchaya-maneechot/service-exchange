@@ -4,7 +4,7 @@ import (
 	pb "github.com/pratchaya-maneechot/service-exchange/apps/users/api/proto/user"
 	"github.com/pratchaya-maneechot/service-exchange/apps/users/internal/app/query"
 	"github.com/pratchaya-maneechot/service-exchange/apps/users/internal/domain/user"
-	"github.com/pratchaya-maneechot/service-exchange/apps/users/internal/grpc/utils"
+	libGrpc "github.com/pratchaya-maneechot/service-exchange/libs/grpc"
 	"google.golang.org/protobuf/types/known/timestamppb"
 )
 
@@ -34,19 +34,19 @@ func MapUserProfileDTOToProto(internalDTO *query.UserProfileDTO) *pb.UserProfile
 	protoDTO := &pb.UserProfileDTO{
 		UserId:      internalDTO.UserID,
 		LineUserId:  internalDTO.LineUserID,
-		Email:       utils.GetStringValue(internalDTO.Email),
+		Email:       libGrpc.PtrToStringValue(internalDTO.Email),
 		DisplayName: internalDTO.DisplayName,
 		Status:      MapDomainUserStatusToProto(internalDTO.Status),
 		IsVerified:  internalDTO.IsVerified,
 		CreatedAt:   timestamppb.New(internalDTO.CreatedAt),
 		LastLoginAt: lastLoginAt,
-		FirstName:   utils.GetStringValue(internalDTO.FirstName),
-		LastName:    utils.GetStringValue(internalDTO.LastName),
-		Bio:         utils.GetStringValue(internalDTO.Bio),
-		AvatarUrl:   utils.GetStringValue(internalDTO.AvatarURL),
-		PhoneNumber: utils.GetStringValue(internalDTO.PhoneNumber),
-		Address:     utils.GetStringValue(internalDTO.Address),
-		Preferences: utils.GetInterfaceString(internalDTO.Preferences),
+		FirstName:   libGrpc.PtrToStringValue(internalDTO.FirstName),
+		LastName:    libGrpc.PtrToStringValue(internalDTO.LastName),
+		Bio:         libGrpc.PtrToStringValue(internalDTO.Bio),
+		AvatarUrl:   libGrpc.PtrToStringValue(internalDTO.AvatarURL),
+		PhoneNumber: libGrpc.PtrToStringValue(internalDTO.PhoneNumber),
+		Address:     libGrpc.PtrToStringValue(internalDTO.Address),
+		Preferences: libGrpc.AnyMapToStringMap(internalDTO.Preferences),
 		Roles:       internalDTO.Roles,
 	}
 	return protoDTO

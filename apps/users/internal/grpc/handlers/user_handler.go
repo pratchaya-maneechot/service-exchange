@@ -9,9 +9,9 @@ import (
 	"github.com/pratchaya-maneechot/service-exchange/apps/users/internal/app/query"
 	"github.com/pratchaya-maneechot/service-exchange/apps/users/internal/domain/shared/ids"
 	"github.com/pratchaya-maneechot/service-exchange/apps/users/internal/grpc/mappers"
-	"github.com/pratchaya-maneechot/service-exchange/apps/users/internal/grpc/utils"
-	"github.com/pratchaya-maneechot/service-exchange/apps/users/pkg/bus"
-	"github.com/pratchaya-maneechot/service-exchange/apps/users/pkg/grpcutil"
+	libCommand "github.com/pratchaya-maneechot/service-exchange/libs/bus/command"
+	libQuery "github.com/pratchaya-maneechot/service-exchange/libs/bus/query"
+	libGrpc "github.com/pratchaya-maneechot/service-exchange/libs/grpc"
 	"google.golang.org/grpc"
 	"google.golang.org/grpc/codes"
 	"google.golang.org/grpc/status"
@@ -20,14 +20,14 @@ import (
 
 type UserGRPCHandler struct {
 	pb.UnimplementedUserServiceServer
-	commandBus bus.CommandBus
-	queryBus   bus.QueryBus
+	commandBus libCommand.CommandBus
+	queryBus   libQuery.QueryBus
 	logger     *slog.Logger
 }
 
 func RegisUserGRPCHandler(
 	gs *grpc.Server,
-	cb bus.CommandBus, qb bus.QueryBus, logger *slog.Logger,
+	cb libCommand.CommandBus, qb libQuery.QueryBus, logger *slog.Logger,
 ) {
 	server := &UserGRPCHandler{
 		commandBus: cb,
@@ -40,14 +40,14 @@ func RegisUserGRPCHandler(
 func (h *UserGRPCHandler) RegisterUser(ctx context.Context, req *pb.RegisterUserRequest) (*pb.RegisterUserResponse, error) {
 	cmd := command.RegisterUserCommand{
 		LineUserID:  req.GetLineUserId(),
-		Email:       utils.GetValuePointer(req.GetEmail()),
-		Password:    utils.GetValuePointer(req.GetPassword()),
+		Email:       libGrpc.StringValueToPtr(req.GetEmail()),
+		Password:    libGrpc.StringValueToPtr(req.GetPassword()),
 		DisplayName: req.GetDisplayName(),
 		AvatarURL:   req.GetAvatarUrl().GetValue(),
 	}
 	result, err := h.commandBus.Dispatch(ctx, cmd)
 	if err != nil {
-		return nil, grpcutil.NewGRPCErrCode(err)
+		return nil, libGrpc.NewGRPCErrCode(err)
 	}
 	usr, ok := result.(*command.RegisterUserDto)
 	if !ok {
@@ -72,18 +72,18 @@ func (h *UserGRPCHandler) UpdateUserProfile(ctx context.Context, req *pb.UpdateU
 	userID := ids.UserID(req.GetUserId())
 	cmd := command.UpdateUserProfileCommand{
 		UserID:      userID,
-		DisplayName: utils.GetValuePointer(req.GetDisplayName()),
-		FirstName:   utils.GetValuePointer(req.GetFirstName()),
-		LastName:    utils.GetValuePointer(req.GetLastName()),
-		Bio:         utils.GetValuePointer(req.GetBio()),
-		AvatarURL:   utils.GetValuePointer(req.GetAvatarUrl()),
-		PhoneNumber: utils.GetValuePointer(req.GetPhoneNumber()),
-		Address:     utils.GetValuePointer(req.GetAddress()),
-		Preferences: utils.GetStringInterface(req.GetPreferences()),
+		DisplayName: libGrpc.StringValueToPtr(req.GetDisplayName()),
+		FirstName:   libGrpc.StringValueToPtr(req.GetFirstName()),
+		LastName:    libGrpc.StringValueToPtr(req.GetLastName()),
+		Bio:         libGrpc.StringValueToPtr(req.GetBio()),
+		AvatarURL:   libGrpc.StringValueToPtr(req.GetAvatarUrl()),
+		PhoneNumber: libGrpc.StringValueToPtr(req.GetPhoneNumber()),
+		Address:     libGrpc.StringValueToPtr(req.GetAddress()),
+		Preferences: libGrpc.StringMapToAnyMap(req.GetPreferences()),
 	}
 	if _, err := h.commandBus.Dispatch(ctx, cmd); err != nil {
 		h.logger.Error("Failed to dispatch UpdateUserProfileCommand", "error", err)
-		return nil, grpcutil.NewGRPCErrCode(err)
+		return nil, libGrpc.NewGRPCErrCode(err)
 	}
 	return &emptypb.Empty{}, nil
 }
@@ -99,7 +99,7 @@ func (h *UserGRPCHandler) GetUserProfile(ctx context.Context, req *pb.GetUserPro
 	}
 	result, err := h.queryBus.Dispatch(ctx, qry)
 	if err != nil {
-		return nil, grpcutil.NewGRPCErrCode(err)
+		return nil, libGrpc.NewGRPCErrCode(err)
 	}
 	internalDTO, ok := result.(*query.UserProfileDTO)
 	if !ok {

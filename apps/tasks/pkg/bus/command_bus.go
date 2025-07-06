@@ -10,7 +10,7 @@ import (
 
 // CommandBus is a concrete implementation of CommandBus that stores handlers in memory.
 type commandBus struct {
-	handlers handler.BusHandler
+	handlers BusHandler
 }
 
 // NewCommandBus creates a new CommandBus.

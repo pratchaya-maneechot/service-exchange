@@ -16,10 +16,11 @@ import (
 	"github.com/pratchaya-maneechot/service-exchange/apps/users/internal/app/command"
 	"github.com/pratchaya-maneechot/service-exchange/apps/users/internal/app/query"
 	"github.com/pratchaya-maneechot/service-exchange/apps/users/internal/config"
-	grpc "github.com/pratchaya-maneechot/service-exchange/apps/users/internal/grpc"
+	"github.com/pratchaya-maneechot/service-exchange/apps/users/internal/grpc"
 	"github.com/pratchaya-maneechot/service-exchange/apps/users/internal/infra"
 	"github.com/pratchaya-maneechot/service-exchange/apps/users/internal/infra/observability/metrics"
-	"github.com/pratchaya-maneechot/service-exchange/apps/users/pkg/bus"
+	"github.com/pratchaya-maneechot/service-exchange/libs/bus"
+	libGrpc "github.com/pratchaya-maneechot/service-exchange/libs/grpc"
 )
 
 func ProvideConfig() (*config.Config, error) {
@@ -28,7 +29,7 @@ func ProvideConfig() (*config.Config, error) {
 
 type Internal struct {
 	Config       *config.Config
-	Server       *grpc.GRPCServer
+	Server       *libGrpc.GRPCServer
 	Logger       *slog.Logger
 	App          *app.App
 	Bus          *bus.Bus
@@ -38,7 +39,7 @@ type Internal struct {
 
 func NewInternal(
 	cfg *config.Config,
-	gs *grpc.GRPCServer,
+	gs *libGrpc.GRPCServer,
 	appModule *app.App,
 	bBus *bus.Bus,
 	logger *slog.Logger,
@@ -67,7 +68,7 @@ func InitializeApp(parentCtx context.Context) (*Internal, error) {
 		app.AppModuleSet,
 		bus.BusModuleSet,
 		infra.InfraModuleSet,
-		grpc.NewServer,
+		grpc.NewGRPCServer,
 		NewInternal,
 		ProvideAppCleanup,
 	)
@@ -76,7 +77,7 @@ func InitializeApp(parentCtx context.Context) (*Internal, error) {
 
 func ProvideAppCleanup(
 	infraModule *infra.Infra,
-	server *grpc.GRPCServer,
+	server *libGrpc.GRPCServer,
 	metricServer *metrics.MetricServer,
 	logger *slog.Logger,
 	appModule *app.App,

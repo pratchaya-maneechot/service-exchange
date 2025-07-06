@@ -37,7 +37,7 @@ func main() {
 		logger.Info("Received OS signal, initiating graceful shutdown", "signal", s.String())
 		rootCancel()
 	}()
-	logger.Info("Starting gRPC server",
+	logger.Info("Starting users server",
 		"address", app.Config.Server.Address,
 		"environment", app.Config.Environment,
 		"version", app.Config.Version)

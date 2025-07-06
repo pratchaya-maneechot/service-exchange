@@ -1,27 +1,27 @@
-package bus
+package command
 
 import (
 	"context"
 	"fmt"
 	"reflect"
-
-	"github.com/pratchaya-maneechot/service-exchange/apps/users/pkg/bus/handler"
 )
 
-// CommandBus is a concrete implementation of CommandBus that stores handlers in memory.
-type commandBus struct {
-	handlers handler.BusHandler
+type CommandBusHandler interface {
+	Load(key any) (value any, ok bool)
+	Store(key any, value any) (duplicated bool)
+	Delete(key any)
 }
 
-// NewCommandBus creates a new CommandBus.
-func NewCommandBus() CommandBus {
+type commandBus struct {
+	handlers CommandBusHandler
+}
+
+func NewCommandBus(h CommandBusHandler) CommandBus {
 	return &commandBus{
-		handlers: handler.NewInMemoryBusHandler(),
+		handlers: h,
 	}
 }
 
-// RegisterHandler registers a CommandHandler for a specific Command type.
-// It performs strict type checking to ensure the handler correctly implements CommandHandler[C].
 func (b *commandBus) RegisterHandler(cmdType Command, handler any) error {
 	cmdReflectType := reflect.TypeOf(cmdType)
 	handlerReflectType := reflect.TypeOf(handler)
@@ -30,16 +30,13 @@ func (b *commandBus) RegisterHandler(cmdType Command, handler any) error {
 		panic(fmt.Errorf("command handler for type %s cannot be nil", cmdReflectType.String()))
 	}
 
-	// Check if a handler is already registered for this command type
 	if duplicated := b.handlers.Store(cmdReflectType, handler); duplicated {
 		panic(ErrCommandAlreadyRegistered{CommandType: cmdReflectType})
 	}
 
-	// Now perform stricter validation of the handler's type
-	// The handler must have a method named "Handle" that matches the CommandHandler[C] signature.
 	handleMethod, found := handlerReflectType.MethodByName("Handle")
 	if !found {
-		b.handlers.Delete(cmdReflectType) // Remove partially registered handler
+		b.handlers.Delete(cmdReflectType)
 		panic(ErrInvalidCommandHandler{
 			HandlerType: handlerReflectType,
 			CommandType: cmdReflectType,
@@ -47,18 +44,16 @@ func (b *commandBus) RegisterHandler(cmdType Command, handler any) error {
 		})
 	}
 
-	// Expected signature: func(ctx context.Context, cmd C) error
-	// Method's signature (Input: receiver, ctx, cmd; Output: error)
 	expectedIn := []reflect.Type{
-		reflect.TypeOf((*context.Context)(nil)).Elem(), // ctx
-		cmdReflectType, // cmd
+		reflect.TypeOf((*context.Context)(nil)).Elem(),
+		cmdReflectType,
 	}
 	expectedOut := []reflect.Type{
-		nil,                                  // Placeholder for generic result type R
-		reflect.TypeOf((*error)(nil)).Elem(), // error
+		nil,
+		reflect.TypeOf((*error)(nil)).Elem(),
 	}
-	// Check input parameters
-	if handleMethod.Type.NumIn() != len(expectedIn)+1 { // +1 for the receiver
+
+	if handleMethod.Type.NumIn() != len(expectedIn)+1 {
 		b.handlers.Delete(cmdReflectType)
 		panic(ErrInvalidCommandHandler{
 			HandlerType: handlerReflectType,
@@ -67,7 +62,6 @@ func (b *commandBus) RegisterHandler(cmdType Command, handler any) error {
 		})
 	}
 	for i, expected := range expectedIn {
-		// handleMethod.Type.In(0) is the receiver itself
 		if handleMethod.Type.In(i+1) != expected {
 			b.handlers.Delete(cmdReflectType)
 			panic(ErrInvalidCommandHandler{
@@ -78,7 +72,6 @@ func (b *commandBus) RegisterHandler(cmdType Command, handler any) error {
 		}
 	}
 
-	// Check output parameters
 	if handleMethod.Type.NumOut() != len(expectedOut) {
 		b.handlers.Delete(cmdReflectType)
 		panic(ErrInvalidCommandHandler{
@@ -101,7 +94,6 @@ func (b *commandBus) RegisterHandler(cmdType Command, handler any) error {
 	return nil
 }
 
-// Dispatch dispatches a Command to its registered handler.
 func (b *commandBus) Dispatch(ctx context.Context, cmd Command) (Result, error) {
 	cmdType := reflect.TypeOf(cmd)
 
@@ -126,12 +118,12 @@ func (b *commandBus) Dispatch(ctx context.Context, cmd Command) (Result, error) 
 	results := handleMethod.Call(args)
 
 	var err error
-	if len(results) > 1 && !results[1].IsNil() { // Error is the second return value
+	if len(results) > 1 && !results[1].IsNil() {
 		err = results[1].Interface().(error)
 	}
 
 	var result any
-	if len(results) > 0 { // Result is the first return value
+	if len(results) > 0 {
 		result = results[0].Interface()
 	}
 
