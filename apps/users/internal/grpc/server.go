@@ -6,7 +6,6 @@ import (
 
 	"github.com/pratchaya-maneechot/service-exchange/apps/users/internal/config"
 	"github.com/pratchaya-maneechot/service-exchange/apps/users/internal/grpc/handlers"
-	"github.com/pratchaya-maneechot/service-exchange/apps/users/internal/grpc/middleware"
 	"github.com/pratchaya-maneechot/service-exchange/libs/bus"
 	libGrpc "github.com/pratchaya-maneechot/service-exchange/libs/grpc"
 	"github.com/pratchaya-maneechot/service-exchange/libs/infra/observability"
@@ -36,11 +35,6 @@ func NewGRPCServer(
 		grpc.MaxRecvMsgSize(cfg.Server.MaxRecvMsgSize),
 		grpc.MaxSendMsgSize(cfg.Server.MaxSendMsgSize),
 		grpc.MaxConcurrentStreams(cfg.Server.MaxConcurrentStreams),
-		grpc.ChainUnaryInterceptor(
-			middleware.UnaryRecoveryInterceptor(logger),
-			middleware.UnaryTraceInterceptor(),
-			middleware.UnaryMetricsInterceptor(metricsRecorder),
-		),
 	}
 
 	server, err := libGrpc.NewServer(libGrpc.ConfigGRPCServer{

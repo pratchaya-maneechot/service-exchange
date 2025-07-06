@@ -1,5 +1,4 @@
-// apps/users/internal/grpc/middleware/observability.go
-package middleware
+package grpc
 
 import (
 	"context"
