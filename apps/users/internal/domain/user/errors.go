@@ -1,6 +1,6 @@
 package user
 
-import errs "github.com/pratchaya-maneechot/service-exchange/apps/users/pkg/errors"
+import errs "github.com/pratchaya-maneechot/service-exchange/libs/errors"
 
 var (
 	ErrUserNotFound                        = errs.New(errs.CodeNotFound, "user not found")

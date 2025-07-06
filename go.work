@@ -6,4 +6,5 @@ use (
 	./libs/bus
 	./libs/grpc
 	./libs/utils
+	./libs/errors
 )

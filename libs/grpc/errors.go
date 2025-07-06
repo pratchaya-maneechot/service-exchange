@@ -5,7 +5,7 @@ import (
 	"errors"
 	"fmt"
 
-	errs "github.com/pratchaya-maneechot/service-exchange/apps/users/pkg/errors"
+	errs "github.com/pratchaya-maneechot/service-exchange/libs/errors"
 	"google.golang.org/grpc/codes"
 	"google.golang.org/grpc/status"
 )
