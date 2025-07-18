@@ -1,14 +1,14 @@
-package mappers
+package views
 
 import (
 	pb "github.com/pratchaya-maneechot/service-exchange/apps/users/api/proto/user"
 	"github.com/pratchaya-maneechot/service-exchange/apps/users/internal/app/query"
 	"github.com/pratchaya-maneechot/service-exchange/apps/users/internal/domain/user"
-	libGrpc "github.com/pratchaya-maneechot/service-exchange/libs/grpc"
+	lg "github.com/pratchaya-maneechot/service-exchange/libs/grpc"
 	"google.golang.org/protobuf/types/known/timestamppb"
 )
 
-func MapDomainUserStatusToProto(domainStatus user.UserStatus) pb.UserStatus {
+func domainUserStatusToProto(domainStatus user.UserStatus) pb.UserStatus {
 	switch domainStatus {
 	case user.UserStatusActive:
 		return pb.UserStatus_ACTIVE
@@ -23,7 +23,7 @@ func MapDomainUserStatusToProto(domainStatus user.UserStatus) pb.UserStatus {
 	}
 }
 
-func MapUserProfileDTOToProto(internalDTO *query.UserProfileDTO) *pb.UserProfileDTO {
+func UserProfile(internalDTO *query.UserProfileDTO) *pb.UserProfileDTO {
 	if internalDTO == nil {
 		return nil
 	}
@@ -34,19 +34,19 @@ func MapUserProfileDTOToProto(internalDTO *query.UserProfileDTO) *pb.UserProfile
 	protoDTO := &pb.UserProfileDTO{
 		UserId:      internalDTO.UserID,
 		LineUserId:  internalDTO.LineUserID,
-		Email:       libGrpc.PtrToStringValue(internalDTO.Email),
+		Email:       lg.PtrToStringValue(internalDTO.Email),
 		DisplayName: internalDTO.DisplayName,
-		Status:      MapDomainUserStatusToProto(internalDTO.Status),
+		Status:      domainUserStatusToProto(internalDTO.Status),
 		IsVerified:  internalDTO.IsVerified,
 		CreatedAt:   timestamppb.New(internalDTO.CreatedAt),
 		LastLoginAt: lastLoginAt,
-		FirstName:   libGrpc.PtrToStringValue(internalDTO.FirstName),
-		LastName:    libGrpc.PtrToStringValue(internalDTO.LastName),
-		Bio:         libGrpc.PtrToStringValue(internalDTO.Bio),
-		AvatarUrl:   libGrpc.PtrToStringValue(internalDTO.AvatarURL),
-		PhoneNumber: libGrpc.PtrToStringValue(internalDTO.PhoneNumber),
-		Address:     libGrpc.PtrToStringValue(internalDTO.Address),
-		Preferences: libGrpc.AnyMapToStringMap(internalDTO.Preferences),
+		FirstName:   lg.PtrToStringValue(internalDTO.FirstName),
+		LastName:    lg.PtrToStringValue(internalDTO.LastName),
+		Bio:         lg.PtrToStringValue(internalDTO.Bio),
+		AvatarUrl:   lg.PtrToStringValue(internalDTO.AvatarURL),
+		PhoneNumber: lg.PtrToStringValue(internalDTO.PhoneNumber),
+		Address:     lg.PtrToStringValue(internalDTO.Address),
+		Preferences: lg.AnyMapToStringMap(internalDTO.Preferences),
 		Roles:       internalDTO.Roles,
 	}
 	return protoDTO

@@ -7,7 +7,7 @@ import (
 	"github.com/pratchaya-maneechot/service-exchange/apps/users/internal/config"
 	"github.com/pratchaya-maneechot/service-exchange/apps/users/internal/grpc/handlers"
 	"github.com/pratchaya-maneechot/service-exchange/libs/bus"
-	libGrpc "github.com/pratchaya-maneechot/service-exchange/libs/grpc"
+	lg "github.com/pratchaya-maneechot/service-exchange/libs/grpc"
 	"github.com/pratchaya-maneechot/service-exchange/libs/infra/observability"
 	"google.golang.org/grpc"
 	"google.golang.org/grpc/keepalive"
@@ -18,7 +18,7 @@ func NewGRPCServer(
 	bus bus.Bus,
 	logger *slog.Logger,
 	metricsRecorder observability.MetricsRecorder,
-) (*libGrpc.GRPCServer, error) {
+) (*lg.GRPCServer, error) {
 
 	opts := []grpc.ServerOption{
 		grpc.KeepaliveParams(keepalive.ServerParameters{
@@ -37,7 +37,7 @@ func NewGRPCServer(
 		grpc.MaxConcurrentStreams(cfg.Server.MaxConcurrentStreams),
 	}
 
-	server, err := libGrpc.NewServer(libGrpc.ConfigGRPCServer{
+	server, err := lg.NewServer(lg.ConfigGRPCServer{
 		Address:           cfg.Server.Address,
 		EnableHealthCheck: cfg.Server.EnableReflection,
 		EnableReflection:  cfg.Server.EnableReflection,

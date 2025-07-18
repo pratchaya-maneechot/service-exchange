@@ -19,7 +19,7 @@ import (
 	"github.com/pratchaya-maneechot/service-exchange/apps/users/internal/grpc"
 	"github.com/pratchaya-maneechot/service-exchange/apps/users/internal/infra"
 	"github.com/pratchaya-maneechot/service-exchange/libs/bus"
-	libGrpc "github.com/pratchaya-maneechot/service-exchange/libs/grpc"
+	lg "github.com/pratchaya-maneechot/service-exchange/libs/grpc"
 	"github.com/pratchaya-maneechot/service-exchange/libs/infra/observability"
 )
 
@@ -29,7 +29,7 @@ func ProvideConfig() (*config.Config, error) {
 
 type Internal struct {
 	Config       *config.Config
-	Server       *libGrpc.GRPCServer
+	Server       *lg.GRPCServer
 	Logger       *slog.Logger
 	App          *app.App
 	Bus          *bus.Bus
@@ -39,7 +39,7 @@ type Internal struct {
 
 func NewInternal(
 	cfg *config.Config,
-	gs *libGrpc.GRPCServer,
+	gs *lg.GRPCServer,
 	appModule *app.App,
 	bBus *bus.Bus,
 	logger *slog.Logger,
@@ -77,7 +77,7 @@ func InitializeApp(parentCtx context.Context) (*Internal, error) {
 
 func ProvideAppCleanup(
 	infraModule *infra.Infra,
-	server *libGrpc.GRPCServer,
+	server *lg.GRPCServer,
 	metricServer *observability.MetricServer,
 	logger *slog.Logger,
 	appModule *app.App,

@@ -8,10 +8,10 @@ import (
 	"github.com/pratchaya-maneechot/service-exchange/apps/users/internal/app/command"
 	"github.com/pratchaya-maneechot/service-exchange/apps/users/internal/app/query"
 	"github.com/pratchaya-maneechot/service-exchange/apps/users/internal/domain/shared/ids"
-	"github.com/pratchaya-maneechot/service-exchange/apps/users/internal/grpc/mappers"
-	libCommand "github.com/pratchaya-maneechot/service-exchange/libs/bus/command"
-	libQuery "github.com/pratchaya-maneechot/service-exchange/libs/bus/query"
-	libGrpc "github.com/pratchaya-maneechot/service-exchange/libs/grpc"
+	"github.com/pratchaya-maneechot/service-exchange/apps/users/internal/grpc/views"
+	lc "github.com/pratchaya-maneechot/service-exchange/libs/bus/command"
+	lq "github.com/pratchaya-maneechot/service-exchange/libs/bus/query"
+	lg "github.com/pratchaya-maneechot/service-exchange/libs/grpc"
 	"google.golang.org/grpc"
 	"google.golang.org/grpc/codes"
 	"google.golang.org/grpc/status"
@@ -20,14 +20,14 @@ import (
 
 type UserGRPCHandler struct {
 	pb.UnimplementedUserServiceServer
-	commandBus libCommand.CommandBus
-	queryBus   libQuery.QueryBus
+	commandBus lc.CommandBus
+	queryBus   lq.QueryBus
 	logger     *slog.Logger
 }
 
 func RegisUserGRPCHandler(
 	gs *grpc.Server,
-	cb libCommand.CommandBus, qb libQuery.QueryBus, logger *slog.Logger,
+	cb lc.CommandBus, qb lq.QueryBus, logger *slog.Logger,
 ) {
 	server := &UserGRPCHandler{
 		commandBus: cb,
@@ -40,14 +40,14 @@ func RegisUserGRPCHandler(
 func (h *UserGRPCHandler) RegisterUser(ctx context.Context, req *pb.RegisterUserRequest) (*pb.RegisterUserResponse, error) {
 	cmd := command.RegisterUserCommand{
 		LineUserID:  req.GetLineUserId(),
-		Email:       libGrpc.StringValueToPtr(req.GetEmail()),
-		Password:    libGrpc.StringValueToPtr(req.GetPassword()),
+		Email:       lg.StringValueToPtr(req.GetEmail()),
+		Password:    lg.StringValueToPtr(req.GetPassword()),
 		DisplayName: req.GetDisplayName(),
 		AvatarURL:   req.GetAvatarUrl().GetValue(),
 	}
 	result, err := h.commandBus.Dispatch(ctx, cmd)
 	if err != nil {
-		return nil, libGrpc.NewGRPCErrCode(err)
+		return nil, lg.NewGRPCErrCode(err)
 	}
 	usr, ok := result.(*command.RegisterUserDto)
 	if !ok {
@@ -72,18 +72,18 @@ func (h *UserGRPCHandler) UpdateUserProfile(ctx context.Context, req *pb.UpdateU
 	userID := ids.UserID(req.GetUserId())
 	cmd := command.UpdateUserProfileCommand{
 		UserID:      userID,
-		DisplayName: libGrpc.StringValueToPtr(req.GetDisplayName()),
-		FirstName:   libGrpc.StringValueToPtr(req.GetFirstName()),
-		LastName:    libGrpc.StringValueToPtr(req.GetLastName()),
-		Bio:         libGrpc.StringValueToPtr(req.GetBio()),
-		AvatarURL:   libGrpc.StringValueToPtr(req.GetAvatarUrl()),
-		PhoneNumber: libGrpc.StringValueToPtr(req.GetPhoneNumber()),
-		Address:     libGrpc.StringValueToPtr(req.GetAddress()),
-		Preferences: libGrpc.StringMapToAnyMap(req.GetPreferences()),
+		DisplayName: lg.StringValueToPtr(req.GetDisplayName()),
+		FirstName:   lg.StringValueToPtr(req.GetFirstName()),
+		LastName:    lg.StringValueToPtr(req.GetLastName()),
+		Bio:         lg.StringValueToPtr(req.GetBio()),
+		AvatarURL:   lg.StringValueToPtr(req.GetAvatarUrl()),
+		PhoneNumber: lg.StringValueToPtr(req.GetPhoneNumber()),
+		Address:     lg.StringValueToPtr(req.GetAddress()),
+		Preferences: lg.StringMapToAnyMap(req.GetPreferences()),
 	}
 	if _, err := h.commandBus.Dispatch(ctx, cmd); err != nil {
 		h.logger.Error("Failed to dispatch UpdateUserProfileCommand", "error", err)
-		return nil, libGrpc.NewGRPCErrCode(err)
+		return nil, lg.NewGRPCErrCode(err)
 	}
 	return &emptypb.Empty{}, nil
 }
@@ -99,13 +99,13 @@ func (h *UserGRPCHandler) GetUserProfile(ctx context.Context, req *pb.GetUserPro
 	}
 	result, err := h.queryBus.Dispatch(ctx, qry)
 	if err != nil {
-		return nil, libGrpc.NewGRPCErrCode(err)
+		return nil, lg.NewGRPCErrCode(err)
 	}
 	internalDTO, ok := result.(*query.UserProfileDTO)
 	if !ok {
 		return nil, status.Errorf(codes.Internal, "internal server error: unexpected response from GetUserProfileQuery handler")
 	}
-	return mappers.MapUserProfileDTOToProto(internalDTO), nil
+	return views.UserProfile(internalDTO), nil
 }
 
 func (h *UserGRPCHandler) GetUserIdentityVerification(ctx context.Context, req *pb.GetUserIdentityVerificationRequest) (*pb.IdentityVerificationDTO, error) {
