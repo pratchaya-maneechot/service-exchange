@@ -1,8 +1,8 @@
 import { Injectable } from '@nestjs/common';
-import { GrpcClientRepository } from './grpc-client.repository';
-import { GrpcClientFactory } from './grpc-client.factory';
-import { UserServiceClient } from './types/generated/user/UserService';
-import { GrpcClientService } from './grpc-client.service';
+import { GrpcClientRepository } from '../grpc-client.repository';
+import { GrpcClientFactory } from '../grpc-client.factory';
+import { UserServiceClient } from '../types/generated/user/UserService';
+import { GrpcClientService } from '../grpc-client.service';
 import { InjectPinoLogger, PinoLogger } from 'nestjs-pino';
 
 @Injectable()

@@ -42,7 +42,7 @@ export class GraphQLLoggerPlugin implements ApolloServerPlugin {
         userId,
         variables: this.sanitizeVariables(request.variables),
       },
-      'GraphQL Request Started',
+      `GraphQL ${operationName} Started`,
     );
 
     const _logger = this.logger;
@@ -57,7 +57,6 @@ export class GraphQLLoggerPlugin implements ApolloServerPlugin {
           if (err) {
             _logger.warn({ err, operationName }, 'Query Parsing Failed');
           } else if (duration) {
-            // Log only if duration is significant (>50ms) to reduce noise
             if (duration > 50) {
               _logger.debug(
                 { operationName, duration: `${duration.toFixed(2)}ms` },
@@ -114,7 +113,7 @@ export class GraphQLLoggerPlugin implements ApolloServerPlugin {
                     args,
                     ...(error && { error: stdSerializers?.err(error) }),
                   },
-                  'Field Resolution',
+                  `Field Resolution ${fieldKey}`,
                 );
               }
             };
@@ -133,7 +132,7 @@ export class GraphQLLoggerPlugin implements ApolloServerPlugin {
               path: error.path,
               code: error.extensions?.code,
             },
-            'GraphQL Error',
+            `GraphQL ${operationName} Error`,
           );
         });
       },
@@ -152,7 +151,7 @@ export class GraphQLLoggerPlugin implements ApolloServerPlugin {
               ]),
             ),
           },
-          'GraphQL Request Completed',
+          `GraphQL ${operationName} Completed`,
         );
       },
     };

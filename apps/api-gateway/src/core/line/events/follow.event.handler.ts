@@ -1,4 +1,4 @@
-import { Injectable, Logger } from '@nestjs/common';
+import { Injectable } from '@nestjs/common';
 import { IEventHandler } from './events.type';
 import { FollowEvent } from '@line/bot-sdk';
 import { UserService } from 'src/core/user/user.service';
@@ -36,10 +36,9 @@ export class FollowEventHandler implements IEventHandler<FollowEvent> {
 
       const lineProfile = await this.lineService.getProfile(userId);
       await this.userService.lineRegister({
-        lineId: lineProfile.userId,
+        lineUserId: lineProfile.userId,
         displayName: lineProfile.displayName,
-        pictureUrl: lineProfile.pictureUrl,
-        role: 'POSTER',
+        avatarUrl: lineProfile.pictureUrl,
       });
     } catch (error) {
       this.logger.error('Failed to handle follow event', {

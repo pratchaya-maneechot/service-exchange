@@ -4,14 +4,18 @@ import { ValidationPipe } from '@nestjs/common';
 import { AppModule } from './app.module';
 import { EnvConfig } from './config/config.type';
 import { Logger, LoggerErrorInterceptor, PinoLogger } from 'nestjs-pino';
+import { AllExceptionsFilter } from './exceptions/all-exceptions.filter';
 
 async function bootstrap() {
   try {
     const app = await NestFactory.create(AppModule);
     const config = app.get(ConfigService<EnvConfig>);
+    const pLogger = await app.resolve(PinoLogger);
+    const logger = app.get(Logger);
+
     app.useLogger(app.get(Logger));
     app.useGlobalInterceptors(new LoggerErrorInterceptor());
-    const logger = app.get(Logger);
+    app.useGlobalFilters(new AllExceptionsFilter(pLogger));
     app.useGlobalPipes(
       new ValidationPipe({
         transform: true,

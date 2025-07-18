@@ -1,47 +1,64 @@
 import { Injectable } from '@nestjs/common';
-import { UserClientService } from 'src/grpc-client/user-client.service';
-import { LineRegisterRequest } from 'src/grpc-client/types/generated/user/LineRegisterRequest';
-import { User } from '../entities/user.entity';
-import { UpdateProfileInput } from './inputs/update-profile.input';
-import { User__Output } from 'src/grpc-client/types/generated/user/User';
-import { toDate } from 'src/common/utils/grpc.util';
-import { protoToEnumUserRole } from '../utils';
+import { UserClientService } from 'src/grpc-client/services/user-client.service';
+import { UpdateProfileInput } from './dtos/update-profile.input';
+import { LineRegisterInput } from './dtos/line-register';
+import { UserProfileDTO__Output } from '../../grpc-client/types/generated/user/UserProfileDTO';
+import { EnumUserRole, EnumUserStatus, User } from '../entities/user.entity';
+import { toDate, toStrVal } from '../../common/utils/grpc.util';
+import { NotFoundError } from '../../common/errors';
 
 @Injectable()
 export class UserService {
   constructor(private readonly user: UserClientService) {}
 
-  private transformUser(user: User__Output): User {
-    return {
-      id: user.id,
-      name: user.name,
-      phone: user.phone,
-      password: user.password,
-      email: user.email,
-      roles: user.roles.map((r) =>
-        typeof r === 'number' ? protoToEnumUserRole(r) : r,
-      ),
-      createdAt: toDate(user.createdAt) ?? new Date(),
-      updatedAt: toDate(user.updatedAt),
+  private toUser(resp: UserProfileDTO__Output | undefined): User | undefined {
+    if (!resp) {
+      return resp;
+    }
+    const res: User = {
+      id: resp.userId,
+      lineUserId: resp.lineUserId,
+      displayName: resp.displayName,
+      status: resp.status as EnumUserStatus,
+      isVerified: resp.isVerified,
+      createdAt: toDate(resp.createdAt)!,
+      roles: resp.roles as EnumUserRole[],
+      email: toStrVal(resp.email),
+      firstName: toStrVal(resp.firstName),
+      lastName: toStrVal(resp.lastName),
+      bio: toStrVal(resp.bio),
+      avatarUrl: toStrVal(resp.avatarUrl),
+      phoneNumber: toStrVal(resp.phoneNumber),
+      address: toStrVal(resp.address),
+      preferences: resp.preferences,
+      lastLoginAt: toDate(resp.lastLoginAt),
     };
+    return res;
   }
 
   async getProfile(userId: string) {
-    const profile = await this.user.userService.getProfile({ userId });
-    return this.transformUser(profile!.user!);
+    const result = await this.user.userService.getUserProfile({
+      userId,
+    });
+    const profile = this.toUser(result);
+    if (!profile) {
+      throw new NotFoundError('User not found');
+    }
+    return profile;
   }
 
-  async lineRegister(request: LineRegisterRequest) {
-    const result = await this.user.userService.lineRegister(request);
+  async lineRegister(input: LineRegisterInput) {
+    const result = await this.user.userService.RegisterUser({
+      lineUserId: input.lineUserId,
+      displayName: input.displayName,
+      avatarUrl: { value: input.avatarUrl },
+      email: { value: input.email },
+      password: { value: input.password },
+    });
     return result;
   }
 
   async updateProfile(id: string, input: UpdateProfileInput) {
-    const result = await this.user.userService.updateProfile({
-      userId: id,
-      displayName: input.displayName,
-      pictureUrl: input.pictureUrl,
-    });
-    return result;
+    //
   }
 }

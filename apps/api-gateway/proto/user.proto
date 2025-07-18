@@ -5,63 +5,130 @@ package user;
 option go_package = "github.com/pratchaya-maneechot/service-exchange/apps/users/api/proto/user";
 
 import "google/protobuf/timestamp.proto";
+import "google/protobuf/empty.proto";
 import "google/protobuf/wrappers.proto";
 
-message User {
+enum DocumentType {
+  DOCUMENT_TYPE_UNSPECIFIED = 0;
+  NATIONAL_ID = 1;
+  PASSPORT = 2;
+  DRIVER_LICENSE = 3;
+}
+
+enum UserStatus {
+  USER_STATUS_UNSPECIFIED = 0;
+  ACTIVE = 1;
+  INACTIVE = 2;
+  SUSPENDED = 3;
+  PENDING_VERIFICATION = 4;
+}
+
+enum VerificationStatus {
+  VERIFICATION_STATUS_UNSPECIFIED = 0;
+  PENDING = 1;
+  VERIFIED = 2;
+  REJECTED = 3;
+}
+
+message RegisterUserRequest {
+  string lineUserId = 1;
+  google.protobuf.StringValue email = 2;
+  google.protobuf.StringValue password = 3;
+  string displayName = 4;
+  google.protobuf.StringValue avatarUrl = 5;
+}
+
+message UserLoginRequest {
+  google.protobuf.StringValue email = 1;
+  string password = 2;
+}
+
+message LineLoginRequest {
+  string lineUserId = 1;
+  string idToken = 2;
+}
+
+message UpdateUserProfileRequest {
+  string userId = 1;
+  google.protobuf.StringValue displayName = 2;
+  google.protobuf.StringValue firstName = 3;
+  google.protobuf.StringValue lastName = 4;
+  google.protobuf.StringValue bio = 5;
+  google.protobuf.StringValue avatarUrl = 6;
+  google.protobuf.StringValue phoneNumber = 7;
+  google.protobuf.StringValue address = 8;
+  map<string, string> preferences = 9;
+}
+
+message SubmitIdentityVerificationRequest {
+  string userId = 1;
+  DocumentType documentType = 2;
+  repeated string documentUrls = 3;
+  google.protobuf.StringValue documentNumber = 4;
+}
+
+message RegisterUserResponse {
+  string userId = 1;
+  string jwtToken = 2;
+  int32 expiresInSeconds = 3;
+}
+
+message UserLoginResponse {
+  string jwtToken = 1;
+  int32 expiresInSeconds = 2;
+}
+
+message LineLoginResponse {
+  string userId = 1;
+  string jwtToken = 2;
+  int32 expiresInSeconds = 3;
+}
+
+message GetUserProfileRequest {
+  string userId = 1;
+}
+
+message GetUserIdentityVerificationRequest {
+  string userId = 1;
+}
+
+message UserProfileDTO {
+  string userId = 1;
+  string lineUserId = 2;
+  google.protobuf.StringValue email = 3;
+  string displayName = 4;
+  google.protobuf.StringValue firstName = 5;
+  google.protobuf.StringValue lastName = 6;
+  google.protobuf.StringValue bio = 7;
+  google.protobuf.StringValue avatarUrl = 8;
+  google.protobuf.StringValue phoneNumber = 9;
+  google.protobuf.StringValue address = 10;
+  map<string, string> preferences = 11;
+  UserStatus status = 12;
+  repeated string roles = 13;
+  bool isVerified = 14;
+  google.protobuf.Timestamp lastLoginAt = 15;
+  google.protobuf.Timestamp createdAt = 16;
+}
+
+message IdentityVerificationDTO {
   string id = 1;
-  string name = 2;
-  string phone = 3;
-  string password = 4;
-  string email = 5;
-  repeated UserRole roles = 6;
-  google.protobuf.Timestamp created_at = 7;
-  google.protobuf.Timestamp updated_at = 8;
-}
-
-message LineProfile {
-  string id = 1; // LINE user ID (e.g., U4af4980629...)
-  string user_id = 2; // Associated user ID
-  string display_name = 3;
-  string picture_url = 4;
-  google.protobuf.StringValue status_message = 5;
-}
-
-enum UserRole {
-  POSTER = 0;
-  TASKER = 1;
+  string userId = 2;
+  DocumentType documentType = 3;
+  repeated string documentUrls = 4;
+  VerificationStatus status = 5;
+  google.protobuf.Timestamp submittedAt = 6;
+  google.protobuf.Timestamp verifiedAt = 7;
+  google.protobuf.StringValue rejectionReason = 8;
 }
 
 service UserService {
-  rpc LineRegister(LineRegisterRequest) returns (LineRegisterResponse);
-  rpc UpdateProfile(UpdateProfileRequest) returns (UpdateProfileResponse);
-  rpc GetProfile(GetProfileRequest) returns (GetProfileResponse);
-}
+  rpc RegisterUser(RegisterUserRequest) returns (RegisterUserResponse);
+  rpc UserLogin(UserLoginRequest) returns (UserLoginResponse);
+  rpc LineLogin(LineLoginRequest) returns (LineLoginResponse);
+  rpc UpdateUserProfile(UpdateUserProfileRequest) returns (google.protobuf.Empty);
+  rpc SubmitIdentityVerification(SubmitIdentityVerificationRequest) returns (google.protobuf.Empty);
 
-message LineRegisterRequest {
-  string email = 1;
-  string line_id = 2;
-  string display_name = 3;
-  string picture_url = 4;
-  UserRole role = 5;
-}
-
-message LineRegisterResponse {
-  string user_id = 1;
-}
-
-message UpdateProfileRequest {
-  string user_id = 1;
-  string display_name = 2;
-  string picture_url = 3;
-}
-
-message UpdateProfileResponse {}
-
-message GetProfileRequest {
-  string user_id = 1;
-}
-
-message GetProfileResponse {
-  User user = 1;
-  LineProfile line_profile = 2;
+  rpc GetUserProfile(GetUserProfileRequest) returns (UserProfileDTO);
+  rpc GetUserIdentityVerification(GetUserIdentityVerificationRequest) returns (IdentityVerificationDTO);
 }

@@ -1,7 +1,7 @@
 import { Resolver, Query, Mutation, Args } from '@nestjs/graphql';
 import { UseGuards } from '@nestjs/common';
 import { User } from '../entities/user.entity';
-import { UpdateProfileInput } from './inputs/update-profile.input';
+import { UpdateProfileInput } from './dtos/update-profile.input';
 import { LineAuthGuard } from 'src/core/auth/guards/line.guard';
 import { CurrentIdentity } from 'src/core/auth/decorators/current-identity';
 import { Identity } from 'src/core/auth/types/auth.type';
@@ -15,7 +15,7 @@ export class UserResolver {
 
   @Query(() => User, { name: 'profile' })
   async getProfile(@CurrentIdentity() user: Identity): Promise<User> {
-    return this.userService.getProfile(user.id);
+    return this.userService.getProfile('ab4d3a5a-b7b9-4720-bf6a-45eaf6cb8b2e');
   }
 
   @Mutation(() => UUIDScalar)

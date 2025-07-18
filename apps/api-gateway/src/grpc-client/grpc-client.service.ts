@@ -3,10 +3,20 @@ import {
   ClientUnaryCall,
   Metadata,
   ServiceError,
+  status,
 } from '@grpc/grpc-js';
-import { Status } from '@grpc/grpc-js/build/src/constants';
-import { Injectable } from '@nestjs/common';
+import { HttpStatus, Injectable } from '@nestjs/common';
 import { InjectPinoLogger, PinoLogger } from 'nestjs-pino';
+import {
+  BadRequestError,
+  UnauthorizedError,
+  ServiceUnavailableError,
+  GatewayTimeoutError,
+  InternalServerError,
+  NotFoundError,
+  ForbiddenError,
+} from '../common/errors';
+import { BaseError } from '../common/errors/base.error';
 
 type GrpcCallback<T> = (error: ServiceError | null, response: T | null) => void;
 type GrpcMethod<TRequest, TResponse> = (
@@ -71,23 +81,29 @@ export abstract class GrpcClientService {
       const callback: GrpcCallback<TResponse> = (error, response) => {
         if (error) {
           this.logger.error(
-            `gRPC ${name} failed: ${error.message}`,
-            error.stack,
+            `Raw gRPC error for ${name || 'unknown method'}: ${error.message}`,
+            {
+              code: error.code,
+              details: error.details,
+              metadata: error.metadata?.toJSON(),
+              stack: error.stack,
+            },
           );
-          reject(error);
+          const mappedError = this.mapError(error);
+          reject(mappedError);
         } else if (response) {
-          this.logger.debug(`gRPC ${name} completed successfully`);
+          this.logger.debug(
+            `gRPC ${name || 'unknown method'} completed successfully`,
+          );
           resolve(response);
         } else {
-          this.logger.error(
-            `gRPC ${name} failed: empty response received from gRPC service`,
-          );
-          const err = new Error(
-            'empty response received from gRPC service',
-          ) as ServiceError;
-          err.code = Status.INTERNAL;
-          err.details = 'The service returned a null or undefined response';
-          reject(err);
+          const errorMessage = `gRPC ${name || 'unknown method'} failed: empty response received from gRPC service`;
+          this.logger.error(errorMessage);
+          const emptyResponseError = new InternalServerError(errorMessage, {
+            context: 'empty_grpc_response',
+            serviceMethod: name,
+          });
+          reject(emptyResponseError);
         }
       };
 
@@ -130,5 +146,56 @@ export abstract class GrpcClientService {
     }
 
     return promisified as CallerReturnType<TService>;
+  }
+
+  private mapError(grpcError: ServiceError): BaseError {
+    const message = grpcError.details || grpcError.message;
+    const grpcMetadata = grpcError.metadata?.toJSON();
+
+    switch (grpcError.code) {
+      case status.NOT_FOUND:
+        return new NotFoundError(message, grpcMetadata, grpcError);
+      case status.INVALID_ARGUMENT:
+        return new BadRequestError(message, grpcMetadata, grpcError);
+      case status.UNAUTHENTICATED:
+        return new UnauthorizedError(message, grpcMetadata, grpcError);
+      case status.PERMISSION_DENIED:
+        return new ForbiddenError(message, grpcMetadata, grpcError);
+      case status.UNAVAILABLE:
+        return new ServiceUnavailableError(message, grpcMetadata, grpcError);
+      case status.DEADLINE_EXCEEDED:
+        return new GatewayTimeoutError(message, grpcMetadata, grpcError);
+      case status.INTERNAL:
+      case status.UNKNOWN:
+        return new InternalServerError(message, grpcMetadata, grpcError);
+      case status.CANCELLED:
+        return new BaseError(
+          'Request Cancelled',
+          HttpStatus.CONFLICT,
+          'REQUEST_CANCELLED',
+          grpcMetadata,
+          true,
+          grpcError,
+        );
+      case status.RESOURCE_EXHAUSTED:
+        return new BaseError(
+          'Too Many Requests / Resource Exhausted',
+          HttpStatus.TOO_MANY_REQUESTS,
+          'RESOURCE_EXHAUSTED',
+          grpcMetadata,
+          true,
+          grpcError,
+        );
+      default:
+        return new InternalServerError(
+          `Unhandled gRPC error: ${message} (Code: ${grpcError.code})`,
+          {
+            grpcCode: grpcError.code,
+            originalDetails: grpcError.details,
+            grpcMetadata,
+          },
+          grpcError,
+        );
+    }
   }
 }
