@@ -6,7 +6,7 @@ import (
 	"github.com/jackc/pgx/v5/pgxpool"
 	"github.com/pratchaya-maneechot/service-exchange/apps/users/internal/domain/role"
 	db "github.com/pratchaya-maneechot/service-exchange/apps/users/internal/infra/persistence/postgres/generated"
-	libPostgres "github.com/pratchaya-maneechot/service-exchange/libs/infra/postgres"
+	lp "github.com/pratchaya-maneechot/service-exchange/libs/infra/postgres"
 	"github.com/pratchaya-maneechot/service-exchange/libs/utils"
 )
 
@@ -15,7 +15,7 @@ type roleReader struct {
 	pool *pgxpool.Pool
 }
 
-func NewPostgresRoleReader(dbPool *libPostgres.DBPool) role.RoleReader {
+func NewPostgresRoleReader(dbPool *lp.DBPool) role.RoleReader {
 	return &roleReader{
 		db:   db.New(dbPool.Pool),
 		pool: dbPool.Pool,

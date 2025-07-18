@@ -12,7 +12,7 @@ import (
 	"github.com/pratchaya-maneechot/service-exchange/apps/users/internal/domain/user"
 	db "github.com/pratchaya-maneechot/service-exchange/apps/users/internal/infra/persistence/postgres/generated"
 	"github.com/pratchaya-maneechot/service-exchange/libs/infra/observability"
-	libPostgres "github.com/pratchaya-maneechot/service-exchange/libs/infra/postgres"
+	lp "github.com/pratchaya-maneechot/service-exchange/libs/infra/postgres"
 	"github.com/pratchaya-maneechot/service-exchange/libs/utils"
 
 	"go.opentelemetry.io/otel"
@@ -22,7 +22,6 @@ import (
 
 	"github.com/jackc/pgx/v5"
 	"github.com/jackc/pgx/v5/pgconn"
-	"github.com/jackc/pgx/v5/pgtype"
 	"github.com/jackc/pgx/v5/pgxpool"
 )
 
@@ -34,7 +33,7 @@ type userRepository struct {
 	tracer trace.Tracer
 }
 
-func NewPostgresUserRepository(cfg *config.Config, dbPool *libPostgres.DBPool, logger *slog.Logger) user.UserRepository {
+func NewPostgresUserRepository(cfg *config.Config, dbPool *lp.DBPool, logger *slog.Logger) user.UserRepository {
 	repoLogger := logger.With(slog.String("component", "userRepository"))
 	return &userRepository{
 		db:     db.New(dbPool.Pool),
@@ -57,7 +56,7 @@ func (r *userRepository) FindByID(ctx context.Context, id ids.UserID) (*user.Use
 		attribute.String("db.user_id", string(id)),
 	)
 
-	raw, err := r.db.FindUserByID(ctx, libPostgres.EncodeUID(string(id)))
+	raw, err := r.db.FindUserByID(ctx, lp.ToUUID(string(id)))
 	if err != nil {
 		if errors.Is(err, pgx.ErrNoRows) {
 			span.SetStatus(codes.Ok, "User not found in DB")
@@ -92,15 +91,16 @@ func (r *userRepository) FindByID(ctx context.Context, id ids.UserID) (*user.Use
 		logger.Error("Failed to unmarshal user preferences", "user_id", raw.ID, slog.Any("error", err))
 		return nil, fmt.Errorf("failed to marshal preferences to JSON: %w", err)
 	}
+
 	resp, err := user.NewUserFromRepository(
 		raw.ID.String(),
 		raw.LineUserID,
 		raw.Email,
 		raw.PasswordHash,
 		raw.Status,
-		raw.CreatedAt.Time,
-		raw.UpdatedAt.Time,
-		&raw.LastLoginAt.Time,
+		*lp.ToTime(raw.CreatedAt),
+		*lp.ToTime(raw.UpdatedAt),
+		lp.ToTime(raw.LastLoginAt),
 		user.NewProfileFromRepository(raw.ID.String(), raw.DisplayName, *preferencesJSON),
 		roles,
 	)
@@ -157,9 +157,9 @@ func (r *userRepository) FindByLineUserID(ctx context.Context, lineUserID string
 		raw.Email,
 		raw.PasswordHash,
 		raw.Status,
-		raw.CreatedAt.Time,
-		raw.UpdatedAt.Time,
-		&raw.LastLoginAt.Time,
+		*lp.ToTime(raw.CreatedAt),
+		*lp.ToTime(raw.UpdatedAt),
+		lp.ToTime(raw.LastLoginAt),
 		user.NewProfileFromRepository(raw.ID.String(), raw.DisplayName, *preferencesJSON),
 		roles,
 	)
@@ -210,7 +210,7 @@ func (r *userRepository) Save(ctx context.Context, u *user.User) (err error) {
 	}()
 
 	qtx := r.db.WithTx(tx)
-	userID := libPostgres.EncodeUID(string(u.ID))
+	userID := lp.ToUUID(string(u.ID))
 
 	userExists, err := qtx.UserExistsByID(ctx, userID)
 	if err != nil {
@@ -229,7 +229,7 @@ func (r *userRepository) Save(ctx context.Context, u *user.User) (err error) {
 			Email:        u.Email,
 			PasswordHash: u.PasswordHash,
 			Status:       string(u.Status),
-			LastLoginAt:  pgtype.Timestamptz{Time: *u.LastLoginAt, Valid: u.LastLoginAt != nil},
+			LastLoginAt:  lp.ToTimestamp(u.LastLoginAt),
 		}
 		if _, err = qtx.UpdateUser(ctx, input); err != nil {
 			span.SetStatus(codes.Error, "Failed to update user in DB")
@@ -358,7 +358,7 @@ func (r *userRepository) CreateUserRole(ctx context.Context, usrId ids.UserID, r
 	span.SetAttributes(attribute.String("db.user_id", string(usrId)), attribute.Int("db.role_id", int(roleID)))
 	logger.Debug("Attempting to create user role")
 
-	userID := libPostgres.EncodeUID(string(usrId))
+	userID := lp.ToUUID(string(usrId))
 
 	roleExists, err := r.db.RoleExistsByID(ctx, int32(roleID))
 	if err != nil {

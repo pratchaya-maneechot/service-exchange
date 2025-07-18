@@ -13,17 +13,17 @@ import (
 	"github.com/pratchaya-maneechot/service-exchange/apps/users/internal/infra/persistence/readers"
 	"github.com/pratchaya-maneechot/service-exchange/apps/users/internal/infra/persistence/repositories"
 	"github.com/pratchaya-maneechot/service-exchange/libs/infra/observability"
-	libPostgres "github.com/pratchaya-maneechot/service-exchange/libs/infra/postgres"
+	lp "github.com/pratchaya-maneechot/service-exchange/libs/infra/postgres"
 )
 
 type Infra struct {
-	dbPool *libPostgres.DBPool
+	dbPool *lp.DBPool
 	logger *slog.Logger
 	tracer *sdktrace.TracerProvider
 }
 
 func NewInfra(
-	dbPool *libPostgres.DBPool,
+	dbPool *lp.DBPool,
 	logger *slog.Logger,
 	tracer *sdktrace.TracerProvider,
 ) *Infra {
