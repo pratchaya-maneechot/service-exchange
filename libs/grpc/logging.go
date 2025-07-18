@@ -32,6 +32,19 @@ func UnaryTraceInterceptor() grpc.UnaryServerInterceptor {
 	}
 }
 
+func UnaryLoggerInterceptor(logger *slog.Logger) grpc.UnaryServerInterceptor {
+	return func(ctx context.Context, req any, info *grpc.UnaryServerInfo, handler grpc.UnaryHandler) (any, error) {
+		logger.Info("request starting", "method", info.FullMethod, "req", req)
+		resp, err := handler(ctx, req)
+		if err != nil {
+			logger.Error("request failed", "method", info.FullMethod, "error", err)
+			return resp, err
+		}
+		logger.Info("request completed", "method", info.FullMethod, "resp", resp)
+		return resp, err
+	}
+}
+
 // UnaryMetricsInterceptor records gRPC request metrics.
 func UnaryMetricsInterceptor(metricsRecorder observability.MetricsRecorder) grpc.UnaryServerInterceptor {
 	return func(ctx context.Context, req any, info *grpc.UnaryServerInfo, handler grpc.UnaryHandler) (any, error) {

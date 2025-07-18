@@ -35,6 +35,7 @@ func NewServer(cfg ConfigGRPCServer, logger *slog.Logger) (*GRPCServer, error) {
 	interceptors := []grpc.UnaryServerInterceptor{
 		UnaryRecoveryInterceptor(logger),
 		UnaryTraceInterceptor(),
+		UnaryLoggerInterceptor(logger),
 	}
 
 	if cfg.MetricsRecorder != nil {

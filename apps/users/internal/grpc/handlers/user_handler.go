@@ -93,7 +93,7 @@ func (h *UserGRPCHandler) SubmitIdentityVerification(ctx context.Context, req *p
 }
 
 func (h *UserGRPCHandler) GetUserProfile(ctx context.Context, req *pb.GetUserProfileRequest) (*pb.UserProfileDTO, error) {
-	userID := ids.UserID(req.GetUserId())
+	userID := ids.UserID(req.UserId)
 	qry := query.GetUserProfileQuery{
 		UserID: userID,
 	}
