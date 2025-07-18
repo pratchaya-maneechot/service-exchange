@@ -21,6 +21,9 @@ DB_URL = postgres://root:Hl7FudwaSNzOhhioo0GxlmmMD0LM+I8StQIqJCZ1TPg@localhost:5
 	@[ -f $(TOOLS_SCRIPTS_DIR)/generate-wire.sh ] && sh $(TOOLS_SCRIPTS_DIR)/generate-wire.sh $* || true
 	@[ -d ./apps/$*/internal/infra/persistence/postgres ] && cd ./apps/$*/internal/infra/persistence/postgres && sqlc generate || true
 
+%-sync-proto-gateway:
+	cp apps/$*/api/proto/**/*.proto apps/api-gateway/proto
+	
 %-build-image:
 	@echo "Building $* image..."
 	@docker build -t $*-service:latest -f apps/$*/deploy/docker/Dockerfile .
@@ -44,6 +47,9 @@ DB_URL = postgres://root:Hl7FudwaSNzOhhioo0GxlmmMD0LM+I8StQIqJCZ1TPg@localhost:5
 # Bulk operations
 generate:
 	@for s in $(SERVICES); do $(MAKE) $$s-generate; done
+
+sync-proto-gateway:
+	@for s in $(SERVICES); do $(MAKE) $$s-sync-proto-gateway; done
 
 build-images:
 	@for s in $(SERVICES); do $(MAKE) $$s-build-image; done
