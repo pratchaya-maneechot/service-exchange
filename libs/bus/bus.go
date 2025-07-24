@@ -7,7 +7,6 @@ import (
 	"github.com/pratchaya-maneechot/service-exchange/libs/bus/query"
 )
 
-type Result any
 type Bus struct {
 	CommandBus command.CommandBus
 	QueryBus   query.QueryBus

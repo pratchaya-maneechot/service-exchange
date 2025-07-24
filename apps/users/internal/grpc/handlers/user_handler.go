@@ -2,15 +2,12 @@ package handlers
 
 import (
 	"context"
-	"log/slog"
 
 	pb "github.com/pratchaya-maneechot/service-exchange/apps/users/api/proto/user"
 	"github.com/pratchaya-maneechot/service-exchange/apps/users/internal/app/command"
 	"github.com/pratchaya-maneechot/service-exchange/apps/users/internal/app/query"
 	"github.com/pratchaya-maneechot/service-exchange/apps/users/internal/domain/shared/ids"
 	"github.com/pratchaya-maneechot/service-exchange/apps/users/internal/grpc/views"
-	lc "github.com/pratchaya-maneechot/service-exchange/libs/bus/command"
-	lq "github.com/pratchaya-maneechot/service-exchange/libs/bus/query"
 	lg "github.com/pratchaya-maneechot/service-exchange/libs/grpc"
 	"google.golang.org/grpc"
 	"google.golang.org/grpc/codes"
@@ -20,21 +17,16 @@ import (
 
 type UserGRPCHandler struct {
 	pb.UnimplementedUserServiceServer
-	commandBus lc.CommandBus
-	queryBus   lq.QueryBus
-	logger     *slog.Logger
+	lg.GrpcHandlerOption
 }
 
 func RegisUserGRPCHandler(
 	gs *grpc.Server,
-	cb lc.CommandBus, qb lq.QueryBus, logger *slog.Logger,
+	opt lg.GrpcHandlerOption,
 ) {
-	server := &UserGRPCHandler{
-		commandBus: cb,
-		queryBus:   qb,
-		logger:     logger,
-	}
-	pb.RegisterUserServiceServer(gs, server)
+	pb.RegisterUserServiceServer(gs, &UserGRPCHandler{
+		GrpcHandlerOption: opt,
+	})
 }
 
 func (h *UserGRPCHandler) RegisterUser(ctx context.Context, req *pb.RegisterUserRequest) (*pb.RegisterUserResponse, error) {
@@ -43,16 +35,22 @@ func (h *UserGRPCHandler) RegisterUser(ctx context.Context, req *pb.RegisterUser
 		Email:       lg.StringValueToPtr(req.GetEmail()),
 		Password:    lg.StringValueToPtr(req.GetPassword()),
 		DisplayName: req.GetDisplayName(),
-		AvatarURL:   req.GetAvatarUrl().GetValue(),
+		AvatarURL:   lg.StringValueToPtr(req.GetAvatarUrl()),
 	}
-	result, err := h.commandBus.Dispatch(ctx, cmd)
+	if err := h.Validator.Struct(cmd); err != nil {
+		return nil, h.ValidationErrors(err)
+	}
+
+	result, err := h.Command.Dispatch(ctx, cmd)
 	if err != nil {
 		return nil, lg.NewGRPCErrCode(err)
 	}
+
 	usr, ok := result.(*command.RegisterUserDto)
 	if !ok {
 		return nil, status.Errorf(codes.Internal, "internal server error: unexpected response from RegisterUserCommand handler")
 	}
+
 	return &pb.RegisterUserResponse{
 		UserId:           string(usr.UserID),
 		JwtToken:         string(usr.UserID),
@@ -81,8 +79,8 @@ func (h *UserGRPCHandler) UpdateUserProfile(ctx context.Context, req *pb.UpdateU
 		Address:     lg.StringValueToPtr(req.GetAddress()),
 		Preferences: lg.StringMapToAnyMap(req.GetPreferences()),
 	}
-	if _, err := h.commandBus.Dispatch(ctx, cmd); err != nil {
-		h.logger.Error("Failed to dispatch UpdateUserProfileCommand", "error", err)
+	if _, err := h.Command.Dispatch(ctx, cmd); err != nil {
+		h.Logger.Error("Failed to dispatch UpdateUserProfileCommand", "error", err)
 		return nil, lg.NewGRPCErrCode(err)
 	}
 	return &emptypb.Empty{}, nil
@@ -97,7 +95,7 @@ func (h *UserGRPCHandler) GetUserProfile(ctx context.Context, req *pb.GetUserPro
 	qry := query.GetUserProfileQuery{
 		UserID: userID,
 	}
-	result, err := h.queryBus.Dispatch(ctx, qry)
+	result, err := h.Query.Dispatch(ctx, qry)
 	if err != nil {
 		return nil, lg.NewGRPCErrCode(err)
 	}

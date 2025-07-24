@@ -20,11 +20,15 @@ import (
 )
 
 type RegisterUserCommand struct {
-	LineUserID  string  `json:"lineUserId" validate:"required"`
-	Email       *string `json:"email,omitempty" validate:"omitempty,email"`
-	Password    *string `json:"password,omitempty"`
-	DisplayName string  `json:"displayName" validate:"required"`
-	AvatarURL   string  `json:"avatarUrl,omitempty"`
+	LineUserID  string  `validate:"required,min=1,max=100"`
+	Email       *string `validate:"omitempty,email,max=255"`
+	Password    *string `validate:"omitempty,min=8,max=128,password_strength"`
+	DisplayName string  `validate:"required,min=1,max=100,printascii"`
+	AvatarURL   *string `validate:"omitempty,url,max=500"`
+	// Additional fields that might be useful
+	Locale   *string                `validate:"omitempty,len=2"`
+	Timezone *string                `validate:"omitempty,timezone"`
+	Metadata map[string]interface{} `validate:"omitempty"`
 }
 
 type RegisterUserDto struct {

@@ -64,13 +64,14 @@ func NewInternal(
 
 func InitializeApp(parentCtx context.Context) (*Internal, error) {
 	wire.Build(
-		ProvideConfig,
 		app.AppModuleSet,
 		bus.BusModuleSet,
 		infra.InfraModuleSet,
 		grpc.NewGRPCServer,
 		NewInternal,
+		lg.ProvideValidator,
 		ProvideAppCleanup,
+		ProvideConfig,
 	)
 	return &Internal{}, nil
 }
