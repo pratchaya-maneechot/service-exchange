@@ -1,8 +1,8 @@
 import { Injectable } from '@nestjs/common';
 import { UserClientService } from 'src/grpc-client/services/user-client.service';
 import { UpdateProfileInput } from './dtos/update-profile.input';
-import { LineRegisterInput } from './dtos/line-register';
-import { UserProfileDTO__Output } from '../../grpc-client/types/generated/user/UserProfileDTO';
+import { LineRegisterInput } from './dtos/line-register.input';
+import { UserProfile__Output } from '../../grpc-client/types/generated/user/v1/UserProfile';
 import { EnumUserRole, EnumUserStatus, User } from '../entities/user.entity';
 import { toDate, toStrVal } from '../../common/utils/grpc.util';
 import { NotFoundError } from '../../common/errors';
@@ -11,7 +11,7 @@ import { NotFoundError } from '../../common/errors';
 export class UserService {
   constructor(private readonly user: UserClientService) {}
 
-  private toUser(resp: UserProfileDTO__Output | undefined): User | undefined {
+  private toUser(resp: UserProfile__Output | undefined): User | undefined {
     if (!resp) {
       return resp;
     }
@@ -48,7 +48,7 @@ export class UserService {
   }
 
   async lineRegister(input: LineRegisterInput) {
-    const result = await this.user.userService.RegisterUser({
+    const result = await this.user.userService.LineRegister({
       lineUserId: input.lineUserId,
       displayName: input.displayName,
       avatarUrl: { value: input.avatarUrl },
