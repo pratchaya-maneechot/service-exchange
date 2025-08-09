@@ -72,11 +72,13 @@ All detailed architectural documentation is hosted on our **[GitHub Wiki](https:
     ```
 2.  **Run infra with Docker Compose:**
     ```bash
-    docker compose up -d
+    cd infras && docker compose up -d
     ```
     **Run a single service with Local:**
     ```bash
     # Example for User Service
+    cd apps/users && go mod tidy
+    cd ../../
     make users-generate
     make users-migrate-up # Make sure the database "users" already exists
     make users-dev

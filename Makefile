@@ -4,9 +4,8 @@ SERVICE ?= users
 NAME ?= default_migration
 TOOLS_SCRIPTS_DIR := tools/scripts
 
-# Database config
-DB_URL = postgres://root:Hl7FudwaSNzOhhioo0GxlmmMD0LM+I8StQIqJCZ1TPg@localhost:5422 # Changed port to 5422 to avoid conflict with default
-
+# env
+export DB_URL = postgres://root:Hl7FudwaSNzOhhioo0GxlmmMD0LM+I8StQIqJCZ1TPg@localhost:5432
 
 .PHONY: help $(SERVICES)
 
@@ -22,7 +21,9 @@ DB_URL = postgres://root:Hl7FudwaSNzOhhioo0GxlmmMD0LM+I8StQIqJCZ1TPg@localhost:5
 	@[ -f $(TOOLS_SCRIPTS_DIR)/generate-sqlc.sh ] && sh $(TOOLS_SCRIPTS_DIR)/generate-sqlc.sh $* || true
 
 %-sync-proto-gateway:
-	cp apps/$*/api/proto/**/*.proto apps/api-gateway/proto
+	@echo "Running sync $* proto to api-gateway..."
+	@cp apps/$*/api/proto/**/*.proto apps/api-gateway/proto
+	@echo "Completed to sync $* proto to api-gateway."
 	
 %-build-image:
 	@echo "Building $* image..."
@@ -34,7 +35,7 @@ DB_URL = postgres://root:Hl7FudwaSNzOhhioo0GxlmmMD0LM+I8StQIqJCZ1TPg@localhost:5
 
 %-migrate-up:
 	@echo "Running $* migrations..."
-	@migrate -path ./apps/$*/internal/infra/persistence/postgres/migrations -database "$(DB_URL)/$*?sslmode=disable" up
+	@[ -f $(TOOLS_SCRIPTS_DIR)/migrate-db-up.sh ] && sh $(TOOLS_SCRIPTS_DIR)/migrate-db-up.sh $* || true
 
 %-k8s-deploy:
 	@echo "Deploying $* to k8s..."
