@@ -29,7 +29,7 @@ func RegisUserGRPCHandler(
 	})
 }
 
-func (h *UserGRPCHandler) RegisterUser(ctx context.Context, req *pb.RegisterUserRequest) (*pb.RegisterUserResponse, error) {
+func (h *UserGRPCHandler) LineRegister(ctx context.Context, req *pb.LineRegisterRequest) (*pb.LineRegisterResponse, error) {
 	cmd := command.RegisterUserCommand{
 		LineUserID:  req.GetLineUserId(),
 		Email:       lg.StringValueToPtr(req.GetEmail()),
@@ -51,19 +51,9 @@ func (h *UserGRPCHandler) RegisterUser(ctx context.Context, req *pb.RegisterUser
 		return nil, status.Errorf(codes.Internal, "internal server error: unexpected response from RegisterUserCommand handler")
 	}
 
-	return &pb.RegisterUserResponse{
-		UserId:           string(usr.UserID),
-		JwtToken:         string(usr.UserID),
-		ExpiresInSeconds: int32(0),
+	return &pb.LineRegisterResponse{
+		UserId: string(usr.UserID),
 	}, nil
-}
-
-func (h *UserGRPCHandler) UserLogin(ctx context.Context, req *pb.UserLoginRequest) (*pb.UserLoginResponse, error) {
-	panic("un implement")
-}
-
-func (h *UserGRPCHandler) LineLogin(ctx context.Context, req *pb.LineLoginRequest) (*pb.LineLoginResponse, error) {
-	panic("un implement")
 }
 
 func (h *UserGRPCHandler) UpdateUserProfile(ctx context.Context, req *pb.UpdateUserProfileRequest) (*emptypb.Empty, error) {
@@ -86,11 +76,7 @@ func (h *UserGRPCHandler) UpdateUserProfile(ctx context.Context, req *pb.UpdateU
 	return &emptypb.Empty{}, nil
 }
 
-func (h *UserGRPCHandler) SubmitIdentityVerification(ctx context.Context, req *pb.SubmitIdentityVerificationRequest) (*emptypb.Empty, error) {
-	panic("un implement")
-}
-
-func (h *UserGRPCHandler) GetUserProfile(ctx context.Context, req *pb.GetUserProfileRequest) (*pb.UserProfileDTO, error) {
+func (h *UserGRPCHandler) GetUserProfile(ctx context.Context, req *pb.GetUserProfileRequest) (*pb.UserProfile, error) {
 	userID := ids.UserID(req.UserId)
 	qry := query.GetUserProfileQuery{
 		UserID: userID,
@@ -104,8 +90,4 @@ func (h *UserGRPCHandler) GetUserProfile(ctx context.Context, req *pb.GetUserPro
 		return nil, status.Errorf(codes.Internal, "internal server error: unexpected response from GetUserProfileQuery handler")
 	}
 	return views.UserProfile(internalDTO), nil
-}
-
-func (h *UserGRPCHandler) GetUserIdentityVerification(ctx context.Context, req *pb.GetUserIdentityVerificationRequest) (*pb.IdentityVerificationDTO, error) {
-	panic("un implement")
 }
