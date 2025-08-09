@@ -18,6 +18,20 @@ fi
 GOPATH_BIN="$(go env GOPATH)/bin"
 WIRE_CMD="${GOPATH_BIN}/wire"
 
+echo "Checking and installing wire if not found..."
+
+# Check if wire is already installed
+if ! command -v wire &> /dev/null; then
+    echo "wire not found. Installing..."
+    
+    # Use go install to get the latest version of wire
+    go install github.com/google/wire/cmd/wire@latest
+    
+    echo "wire installed."
+else
+    echo "wire is already installed."
+fi
+
 echo "Generating wire for ${SERVICE_NAME} service..."
 
 # Change directory to the service's root before running wire

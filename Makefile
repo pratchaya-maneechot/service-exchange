@@ -1,5 +1,5 @@
 # Makefile - Simple & Maintainable
-SERVICES := users tasks
+SERVICES := users
 SERVICE ?= users
 NAME ?= default_migration
 TOOLS_SCRIPTS_DIR := tools/scripts
@@ -19,7 +19,7 @@ DB_URL = postgres://root:Hl7FudwaSNzOhhioo0GxlmmMD0LM+I8StQIqJCZ1TPg@localhost:5
 	@echo "Generating $* code..."
 	@[ -f $(TOOLS_SCRIPTS_DIR)/generate-proto.sh ] && sh $(TOOLS_SCRIPTS_DIR)/generate-proto.sh $* || true
 	@[ -f $(TOOLS_SCRIPTS_DIR)/generate-wire.sh ] && sh $(TOOLS_SCRIPTS_DIR)/generate-wire.sh $* || true
-	@[ -d ./apps/$*/internal/infra/persistence/postgres ] && cd ./apps/$*/internal/infra/persistence/postgres && sqlc generate || true
+	@[ -f $(TOOLS_SCRIPTS_DIR)/generate-sqlc.sh ] && sh $(TOOLS_SCRIPTS_DIR)/generate-sqlc.sh $* || true
 
 %-sync-proto-gateway:
 	cp apps/$*/api/proto/**/*.proto apps/api-gateway/proto
