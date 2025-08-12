@@ -48,28 +48,6 @@ export abstract class GrpcClientService {
     logger.setContext(this.constructor.name);
   }
 
-  protected prepareMetadata(userMetadata?: Metadata): Metadata {
-    const meta = new Metadata();
-    const requestId =
-      (this.logger.logger.bindings().req.id as string) ?? 'unknown';
-
-    meta.set('x-request-id', requestId);
-    meta.set('x-service', this.constructor.name);
-    meta.set('x-timestamp', new Date().toISOString());
-
-    if (userMetadata) {
-      Object.entries(userMetadata.getMap()).forEach(([key, value]) => {
-        if (Array.isArray(value)) {
-          value.forEach((v) => meta.add(key, v.toString()));
-        } else {
-          meta.set(key, value);
-        }
-      });
-    }
-
-    return meta;
-  }
-
   private createClient<TRequest, TResponse>(
     method: GrpcMethod<TRequest, TResponse>,
     request: TRequest,
@@ -130,12 +108,11 @@ export abstract class GrpcClientService {
           metadata?: Metadata,
           options?: CallOptions,
         ) => {
-          const meta = this.prepareMetadata(metadata);
           return this.createClient(
             // eslint-disable-next-line @typescript-eslint/no-unsafe-argument, @typescript-eslint/no-unsafe-call
             prop.bind(service),
             request,
-            meta,
+            metadata ?? new Metadata(),
             options,
             key,
           );
