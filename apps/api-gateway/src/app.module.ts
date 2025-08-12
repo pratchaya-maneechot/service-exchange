@@ -3,17 +3,21 @@ import { ConfigModule } from '@nestjs/config';
 import { ThrottlerModule } from '@nestjs/throttler';
 import { TerminusModule } from '@nestjs/terminus';
 import { CoreModule } from './core/core.module';
-import { env } from './config/env.config';
+import { configs } from './config';
 import { GraphQLModule } from './graphql/graphql.module';
 import { AppLoggerModule } from './observability/logger';
+import { PrometheusModule } from '@willsoto/nestjs-prometheus';
 
 @Module({
   imports: [
     AppLoggerModule,
     ConfigModule.forRoot({
       isGlobal: true,
-      load: [env],
+      load: configs,
       envFilePath: ['.env.local', '.env'],
+    }),
+    PrometheusModule.register({
+      path: '/metrics',
     }),
     GraphQLModule,
     ThrottlerModule.forRoot({

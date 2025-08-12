@@ -1,4 +1,6 @@
-export function getOsEnv(key: string, defaultValue?: string): string {
+import { RawEnv } from '../types/env.type';
+
+export function getOsEnv(key: keyof RawEnv, defaultValue?: string): string {
   return (
     process.env[key] ??
     defaultValue ??
@@ -8,7 +10,7 @@ export function getOsEnv(key: string, defaultValue?: string): string {
   );
 }
 
-export function getOsEnvOptional(key: string): string | undefined {
+export function getOsEnvOptional(key: keyof RawEnv): string | undefined {
   return process.env[key];
 }
 

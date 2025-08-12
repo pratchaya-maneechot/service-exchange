@@ -7,6 +7,7 @@ export const EnumUserStatus = {
   INACTIVE: 'INACTIVE',
   SUSPENDED: 'SUSPENDED',
   PENDING_VERIFICATION: 'PENDING_VERIFICATION',
+  USER_STATUS_PENDING_VERIFICATION: 'USER_STATUS_PENDING_VERIFICATION',
 } as const;
 
 export type EnumUserStatus = keyof typeof EnumUserStatus;

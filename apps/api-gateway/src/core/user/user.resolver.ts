@@ -15,7 +15,7 @@ export class UserResolver {
 
   @Query(() => User, { name: 'profile' })
   async getProfile(@CurrentIdentity() user: Identity): Promise<User> {
-    return this.userService.getProfile('ab4d3a5a-b7b9-4720-bf6a-45eaf6cb8b2e');
+    return this.userService.getProfile(user.id);
   }
 
   @Mutation(() => UUIDScalar)

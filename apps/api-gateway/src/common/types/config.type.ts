@@ -20,6 +20,7 @@ export interface JwtConfig {
   refreshSecret: string;
   refreshExpiresIn: string;
 }
+
 export interface LineConfig {
   channelAccessToken: string;
   channelId: string;
@@ -32,14 +33,14 @@ export interface GrpcConfig {
     {
       endpoint: string;
       protoPath: string;
+      version?: string;
     }
   >;
 }
 
-export interface EnvConfig {
+export interface ConfigType {
   app: AppConfig;
   redis: RedisConfig;
-  // jwt: JwtConfig;
   grpc: GrpcConfig;
   line: LineConfig;
 }

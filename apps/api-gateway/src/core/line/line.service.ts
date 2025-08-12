@@ -8,7 +8,7 @@ import {
 import { Injectable } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
 import { InjectPinoLogger, PinoLogger } from 'nestjs-pino';
-import { EnvConfig } from 'src/config/config.type';
+import { ConfigType } from 'src/common/types/config.type';
 
 @Injectable()
 export class LineService {
@@ -16,7 +16,7 @@ export class LineService {
     @InjectPinoLogger(LineService.name)
     private readonly logger: PinoLogger,
     private readonly authClient: OAuth,
-    private readonly config: ConfigService<EnvConfig>,
+    private readonly config: ConfigService<ConfigType>,
     private readonly client: messagingApi.MessagingApiClient,
   ) {}
 

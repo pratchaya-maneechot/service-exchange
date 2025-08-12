@@ -2,7 +2,7 @@ import { Module } from '@nestjs/common';
 import { LineService } from './line.service';
 import { messagingApi, OAuth } from '@line/bot-sdk';
 import { ConfigService } from '@nestjs/config';
-import { EnvConfig } from 'src/config/config.type';
+import { ConfigType } from 'src/common/types/config.type';
 import { EventHandlerFactory } from './events/events.factory';
 import { IEventHandler } from './events/events.type';
 import { FollowEventHandler } from './events/follow.event.handler';
@@ -20,7 +20,7 @@ import { UserModule } from 'src/core/user/user.module';
     },
     {
       provide: messagingApi.MessagingApiClient,
-      useFactory(config: ConfigService<EnvConfig>) {
+      useFactory(config: ConfigService<ConfigType>) {
         return new messagingApi.MessagingApiClient({
           channelAccessToken: config.getOrThrow('line.channelAccessToken', {
             infer: true,

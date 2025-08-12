@@ -5,6 +5,7 @@ import * as protoLoader from '@grpc/proto-loader';
 interface GrpcServiceConfig {
   protoPath: string;
   packageName: string;
+  packageVersion?: string;
   serviceName: string;
   serviceAddress: string;
 }
@@ -40,17 +41,31 @@ export class GrpcClientFactory {
     const proto = this.loadProtoFile(config.protoPath);
     const packageObj = proto[config.packageName];
 
-    if (!packageObj || !packageObj[config.serviceName]) {
+    if (config.packageVersion) {
+      // eslint-disable-next-line @typescript-eslint/no-unsafe-assignment
+      const C = packageObj?.[config.packageVersion]?.[config.serviceName];
+      if (!C) {
+        throw new Error(
+          `Service ${config.serviceName} not found in package ${config.packageName}:${config.packageVersion}`,
+        );
+      }
+      // eslint-disable-next-line @typescript-eslint/no-unsafe-call
+      return new C(
+        config.serviceAddress,
+        grpc.credentials.createInsecure(),
+      ) as T;
+    }
+
+    // eslint-disable-next-line @typescript-eslint/no-unsafe-assignment
+    const C = packageObj?.[config.serviceName];
+    if (!C) {
       throw new Error(
         `Service ${config.serviceName} not found in package ${config.packageName}`,
       );
     }
 
     // eslint-disable-next-line @typescript-eslint/no-unsafe-call
-    return new packageObj[config.serviceName](
-      config.serviceAddress,
-      grpc.credentials.createInsecure(),
-    ) as T;
+    return new C(config.serviceAddress, grpc.credentials.createInsecure()) as T;
   }
 
   createClients<T extends grpc.Client>(

@@ -5,7 +5,28 @@ import { InjectPinoLogger, PinoLogger } from 'nestjs-pino';
 import { stdSerializers } from 'pino-http';
 import { IAppContext } from 'src/common/types/context.type';
 import { ConfigService } from '@nestjs/config';
-import { EnvConfig } from 'src/config/config.type';
+import { ConfigType } from 'src/common/types/config.type';
+import { Histogram, Counter } from 'prom-client';
+
+const LOG_SLOW_RESOLVERS_THRESHOLD = 1500; // ms
+
+const graphqlRequestDurationSeconds = new Histogram({
+  name: 'graphql_request_duration_seconds',
+  help: 'Duration of GraphQL requests in seconds',
+  labelNames: ['operationName', 'operationType'],
+});
+
+const graphqlErrorCount = new Counter({
+  name: 'graphql_errors_total',
+  help: 'Total number of GraphQL errors',
+  labelNames: ['operationName', 'operationType', 'errorType'],
+});
+
+const graphqlResolverDurationSeconds = new Histogram({
+  name: 'graphql_resolver_duration_seconds',
+  help: 'Duration of GraphQL field resolvers in seconds',
+  labelNames: ['parentType', 'fieldName', 'isSlow'],
+});
 
 interface RequestTimings {
   requestStart: number;
@@ -15,30 +36,36 @@ interface RequestTimings {
   resolverTimings: Record<string, number>;
 }
 
-const LOG_SLOW_RESOLVERS_THRESHOLD = 1500; // ms
-
 @Plugin()
 export class GraphQLLoggerPlugin implements ApolloServerPlugin {
   constructor(
     @InjectPinoLogger(GraphQLLoggerPlugin.name)
     private readonly logger: PinoLogger,
-    private readonly config: ConfigService<EnvConfig>,
+    private readonly config: ConfigService<ConfigType>,
   ) {}
 
   async requestDidStart(
     requestContext: GraphQLRequestContext<IAppContext>,
   ): Promise<GraphQLRequestListener<IAppContext>> {
-    const { request, contextValue } = requestContext;
-    const operationName = request.operationName || 'anonymous';
+    const {
+      request,
+      contextValue,
+      operation,
+      operationName: oPn,
+    } = requestContext;
+    const operationName = request.operationName || oPn || 'anonymous';
+    const operationType = operation?.operation ?? 'query';
     const userId = contextValue.req.user?.id || 'anonymous';
     const timings: RequestTimings = {
       requestStart: performance.now(),
       resolverTimings: {},
     };
 
+    // Log & Metrics for request start
     this.logger.info(
       {
         operationName,
+        operationType,
         userId,
         variables: this.sanitizeVariables(request.variables),
       },
@@ -51,18 +78,8 @@ export class GraphQLLoggerPlugin implements ApolloServerPlugin {
       async parsingDidStart() {
         timings.parsingStart = performance.now();
         return async (err) => {
-          const duration = err
-            ? undefined
-            : performance.now() - (timings.parsingStart || 0);
           if (err) {
             _logger.warn({ err, operationName }, 'Query Parsing Failed');
-          } else if (duration) {
-            if (duration > 50) {
-              _logger.debug(
-                { operationName, duration: `${duration.toFixed(2)}ms` },
-                'Query Parsing Completed',
-              );
-            }
           }
         };
       },
@@ -70,18 +87,8 @@ export class GraphQLLoggerPlugin implements ApolloServerPlugin {
       async validationDidStart() {
         timings.validationStart = performance.now();
         return async (err) => {
-          const duration = err
-            ? undefined
-            : performance.now() - (timings.validationStart || 0);
           if (err) {
             _logger.warn({ err, operationName }, 'Query Validation Failed');
-          } else if (duration) {
-            if (duration > 50) {
-              _logger.debug(
-                { operationName, duration: `${duration.toFixed(2)}ms` },
-                'Query Validation Completed',
-              );
-            }
           }
         };
       },
@@ -98,12 +105,13 @@ export class GraphQLLoggerPlugin implements ApolloServerPlugin {
               timings.resolverTimings[fieldKey] =
                 (timings.resolverTimings[fieldKey] || 0) + duration;
 
-              // Log only slow resolvers or errors to reduce log volume
-              if (duration > LOG_SLOW_RESOLVERS_THRESHOLD || error) {
-                const logLevel =
-                  error || duration > LOG_SLOW_RESOLVERS_THRESHOLD
-                    ? 'warn'
-                    : 'debug';
+              const isSlow = duration > LOG_SLOW_RESOLVERS_THRESHOLD;
+              graphqlResolverDurationSeconds
+                .labels(info.parentType.name, info.fieldName, String(isSlow))
+                .observe(duration / 1000); // Convert to seconds
+
+              if (isSlow || error) {
+                const logLevel = error ? 'warn' : 'debug';
                 _logger[logLevel](
                   {
                     fieldName: info.fieldName,
@@ -123,6 +131,14 @@ export class GraphQLLoggerPlugin implements ApolloServerPlugin {
 
       async didEncounterErrors({ errors }) {
         errors?.forEach((error) => {
+          graphqlErrorCount
+            .labels(
+              operationName,
+              operationType || 'anonymous',
+              (error.extensions?.code as string) || 'UNKNOWN',
+            )
+            .inc();
+
           _logger.error(
             {
               operationName,
@@ -139,6 +155,11 @@ export class GraphQLLoggerPlugin implements ApolloServerPlugin {
 
       async willSendResponse() {
         const duration = performance.now() - timings.requestStart;
+
+        graphqlRequestDurationSeconds
+          .labels(operationName, operationType || 'anonymous')
+          .observe(duration / 1000); // Convert to seconds
+
         _logger.info(
           {
             operationName,

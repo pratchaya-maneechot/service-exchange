@@ -1,7 +1,7 @@
 import { Injectable, OnModuleInit } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
 import { GrpcClientFactory } from './grpc-client.factory';
-import { EnvConfig } from 'src/config/config.type';
+import { ConfigType } from 'src/common/types/config.type';
 import * as grpc from '@grpc/grpc-js';
 
 @Injectable()
@@ -10,7 +10,7 @@ export class GrpcClientRepository implements OnModuleInit {
 
   constructor(
     private readonly factory: GrpcClientFactory,
-    private readonly config: ConfigService<EnvConfig>,
+    private readonly config: ConfigService<ConfigType>,
   ) {}
 
   onModuleInit() {
@@ -23,6 +23,7 @@ export class GrpcClientRepository implements OnModuleInit {
         packageName: 'user',
         serviceName: 'UserService',
         protoPath: packages.user.protoPath,
+        packageVersion: packages.user.version,
         serviceAddress: packages.user.endpoint,
       },
     ]);
@@ -50,6 +51,7 @@ export class GrpcClientRepository implements OnModuleInit {
       serviceName,
       protoPath: config.protoPath,
       serviceAddress: config.endpoint,
+      packageVersion: config.version,
     });
     this.clients.set(key, _client);
 

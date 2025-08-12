@@ -1,12 +1,12 @@
 import { Module } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
 import { LoggerModule } from 'nestjs-pino';
-import { EnvConfig } from 'src/config/config.type';
+import { ConfigType } from 'src/common/types/config.type';
 import { v4 } from 'uuid';
 @Module({
   imports: [
     LoggerModule.forRootAsync({
-      useFactory(config: ConfigService<EnvConfig>) {
+      useFactory(config: ConfigService<ConfigType>) {
         return {
           pinoHttp: {
             name: 'Backend',

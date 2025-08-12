@@ -1,15 +1,8 @@
-import { VerifyIDToken } from '@line/bot-sdk';
 import { JwtService } from '@nestjs/jwt';
-import * as dotenv from 'dotenv';
 import { v4 } from 'uuid';
 
-// eslint-disable-next-line @typescript-eslint/no-unsafe-call
-dotenv.config();
-
-const secret = process.env.LINE_CHANNEL_SECRET;
-
 const jwt = new JwtService({
-  secret,
+  secret: 'LINE_CHANNEL_SECRETLINE_CHANNEL_SECRET',
   signOptions: {
     algorithm: 'HS256',
   },
@@ -17,8 +10,8 @@ const jwt = new JwtService({
 
 const payload = {
   iss: 'https://access.line.me',
-  sub: 'U1234567890abcdef1234567890abcdef',
-  aud: process.env.LINE_CHANNEL_ID,
+  sub: '1a2bac2c-57be-457d-98a2-d91788461a56',
+  aud: 'LINE_CHANNEL_IDLINE_CHANNEL_ID',
   exp: Math.floor(Date.now() / 1000) + 3600,
   iat: Math.floor(Date.now() / 1000),
   nonce: v4(),

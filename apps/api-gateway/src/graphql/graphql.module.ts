@@ -4,7 +4,7 @@ import { ConfigService } from '@nestjs/config';
 import { GraphQLModule as NestGraphQLModule } from '@nestjs/graphql';
 import { join } from 'path';
 import { IAppContext } from 'src/common/types/context.type';
-import { EnvConfig } from 'src/config/config.type';
+import { ConfigType } from 'src/common/types/config.type';
 import { GraphQLLoggerPlugin } from './plugins/logger.plugin';
 
 @Module({
@@ -12,7 +12,7 @@ import { GraphQLLoggerPlugin } from './plugins/logger.plugin';
   imports: [
     NestGraphQLModule.forRootAsync<ApolloDriverConfig>({
       driver: ApolloDriver,
-      useFactory: (config: ConfigService<EnvConfig>) => {
+      useFactory: (config: ConfigService<ConfigType>) => {
         const isProd =
           config.get('app.nodeEnv', { infer: true }) === 'production';
         return {
