@@ -61,7 +61,7 @@ func NewRegisterUserCommandHandler(
 func (h *RegisterUserCommandHandler) Handle(ctx context.Context, cmd RegisterUserCommand) (*RegisterUserDto, error) {
 	logger := observability.LoggerFromCtx(ctx).With(slog.String("line_user_id", cmd.LineUserID))
 
-	ctx, span := h.tracer.Start(ctx, "RegisterUserCommand.Handle", trace.WithSpanKind(trace.SpanKindServer))
+	ctx, span := h.tracer.Start(ctx, "RegisterUserCommandHandler.Handle", trace.WithSpanKind(trace.SpanKindServer))
 	defer span.End()
 
 	span.SetAttributes(attribute.String("user.line_user_id", cmd.LineUserID))

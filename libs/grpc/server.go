@@ -8,6 +8,7 @@ import (
 
 	"github.com/pkg/errors"
 	"github.com/pratchaya-maneechot/service-exchange/libs/infra/observability"
+	"go.opentelemetry.io/contrib/instrumentation/google.golang.org/grpc/otelgrpc"
 	"google.golang.org/grpc"
 	"google.golang.org/grpc/health"
 	"google.golang.org/grpc/health/grpc_health_v1"
@@ -42,7 +43,7 @@ func NewServer(cfg ConfigGRPCServer, logger *slog.Logger) (*GRPCServer, error) {
 		interceptors = append(interceptors, UnaryMetricsInterceptor(*cfg.MetricsRecorder))
 	}
 
-	opts := append(cfg.Options, grpc.ChainUnaryInterceptor(interceptors...))
+	opts := append(cfg.Options, grpc.ChainUnaryInterceptor(interceptors...), grpc.StatsHandler(otelgrpc.NewServerHandler()))
 	grpcServer := grpc.NewServer(opts...)
 
 	var healthServer *health.Server

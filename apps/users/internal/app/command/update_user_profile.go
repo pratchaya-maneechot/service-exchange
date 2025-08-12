@@ -54,7 +54,7 @@ func NewUpdateUserProfileCommandHandler(
 func (h *UpdateUserProfileCommandHandler) Handle(ctx context.Context, cmd UpdateUserProfileCommand) (*UpdateUserProfileDto, error) {
 	logger := observability.LoggerFromCtx(ctx).With(slog.String("user_id", string(cmd.UserID)))
 
-	ctx, span := h.tracer.Start(ctx, "UpdateUserProfileCommand.Handle", trace.WithSpanKind(trace.SpanKindServer))
+	ctx, span := h.tracer.Start(ctx, "UpdateUserProfileCommandHandler.Handle", trace.WithSpanKind(trace.SpanKindServer))
 	defer span.End()
 
 	span.SetAttributes(attribute.String("user.id", string(cmd.UserID)))

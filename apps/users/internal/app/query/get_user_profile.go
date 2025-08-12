@@ -66,7 +66,7 @@ func NewGetUserProfileQueryHandler(
 func (h *GetUserProfileQueryHandler) Handle(ctx context.Context, qry GetUserProfileQuery) (*UserProfileDTO, error) {
 	logger := observability.LoggerFromCtx(ctx).With(slog.String("user_id", string(qry.UserID)))
 
-	ctx, span := h.tracer.Start(ctx, "GetUserProfileQuery.Handle", trace.WithSpanKind(trace.SpanKindServer))
+	ctx, span := h.tracer.Start(ctx, "GetUserProfileQueryHandler.Handle", trace.WithSpanKind(trace.SpanKindServer))
 	defer span.End()
 
 	span.SetAttributes(attribute.String("query.user_id", string(qry.UserID)))
