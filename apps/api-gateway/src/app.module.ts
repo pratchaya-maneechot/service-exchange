@@ -5,7 +5,7 @@ import { TerminusModule } from '@nestjs/terminus';
 import { CoreModule } from './core/core.module';
 import { configs } from './config';
 import { GraphQLModule } from './graphql/graphql.module';
-import { AppLoggerModule } from './observability/logger';
+import { AppLoggerModule } from './common/observability/logger';
 import { PrometheusModule } from '@willsoto/nestjs-prometheus';
 
 @Module({

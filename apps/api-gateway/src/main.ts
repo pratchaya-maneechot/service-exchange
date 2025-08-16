@@ -1,4 +1,4 @@
-import './observability/tracer';
+import './common/observability/tracer';
 // ---
 import { NestFactory } from '@nestjs/core';
 import { ConfigService } from '@nestjs/config';
@@ -6,7 +6,7 @@ import { ValidationPipe } from '@nestjs/common';
 import { AppModule } from './app.module';
 import { ConfigType } from './common/types/config.type';
 import { Logger, LoggerErrorInterceptor, PinoLogger } from 'nestjs-pino';
-import { AllExceptionsFilter } from './exceptions/all-exceptions.filter';
+import { AllExceptionsFilter } from './common/filters/all-exceptions.filter';
 
 async function bootstrap() {
   try {

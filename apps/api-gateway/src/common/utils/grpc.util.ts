@@ -1,5 +1,5 @@
 import { Timestamp__Output } from '@grpc/grpc-js/build/src/generated/google/protobuf/Timestamp';
-import { StringValue__Output } from '../../grpc-client/types/generated/google/protobuf/StringValue';
+import { StringValue__Output } from '../../grpc-client/@types/generated/google/protobuf/StringValue';
 
 export function toDate(timestamp: Timestamp__Output | null): Date | null {
   if (!timestamp) return null;

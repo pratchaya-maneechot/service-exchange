@@ -9,8 +9,8 @@ import {
 import { Request, Response } from 'express';
 import { GraphQLError } from 'graphql';
 import { PinoLogger } from 'nestjs-pino';
-import { BaseError } from '../common/errors/base.error';
-import { getOsEnv } from '../common/utils/env.util';
+import { BaseError } from '../errors/base.error';
+import { getOsEnv } from '../utils/env.util';
 
 @Catch()
 export class AllExceptionsFilter implements ExceptionFilter {

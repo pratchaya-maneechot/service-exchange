@@ -2,7 +2,7 @@ import { Injectable } from '@nestjs/common';
 import { UserClientService } from 'src/grpc-client/services/user-client.service';
 import { UpdateProfileInput } from './dtos/update-profile.input';
 import { LineRegisterInput } from './dtos/line-register.input';
-import { UserProfile__Output } from '../../grpc-client/types/generated/user/v1/UserProfile';
+import { UserProfile__Output } from '../../grpc-client/@types/generated/user/v1/UserProfile';
 import { EnumUserRole, EnumUserStatus, User } from '../entities/user.entity';
 import { toDate, toStrVal } from '../../common/utils/grpc.util';
 import { NotFoundError } from '../../common/errors';

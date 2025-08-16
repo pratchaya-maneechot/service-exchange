@@ -9,7 +9,7 @@
     "build": "nest build",
     "build:image": "pnpm build && docker build -t api-gateway:dev -f deploy/docker/Dockerfile .",
     "format": "prettier --write \"src/**/*.ts\" \"test/**/*.ts\"",
-    "proto:gen": "proto-loader-gen-types --longs=String --enums=String --defaults --oneofs --grpcLib=@grpc/grpc-js --outDir=./src/grpc-client/types/generated ./proto/*.proto",
+    "proto:gen": "proto-loader-gen-types --longs=String --enums=String --defaults --oneofs --grpcLib=@grpc/grpc-js --outDir=./src/grpc-client/@types/generated ./proto/*.proto",
     "start": "nest start",
     "start:dev": "nest start --watch",
     "start:debug": "nest start --debug --watch",
