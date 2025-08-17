@@ -53,7 +53,7 @@ export class GraphQLLoggerPlugin implements ApolloServerPlugin {
       operation,
       operationName: oPn,
     } = requestContext;
-    const operationName = request.operationName || oPn || 'anonymous';
+    const operationName = request.operationName || oPn;
     const operationType = operation?.operation ?? 'query';
     const userId = contextValue.req.user?.id || 'anonymous';
     const timings: RequestTimings = {
@@ -61,7 +61,6 @@ export class GraphQLLoggerPlugin implements ApolloServerPlugin {
       resolverTimings: {},
     };
 
-    // Log & Metrics for request start
     this.logger.info(
       {
         operationName,
@@ -131,13 +130,15 @@ export class GraphQLLoggerPlugin implements ApolloServerPlugin {
 
       async didEncounterErrors({ errors }) {
         errors?.forEach((error) => {
-          graphqlErrorCount
-            .labels(
-              operationName,
-              operationType || 'anonymous',
-              (error.extensions?.code as string) || 'UNKNOWN',
-            )
-            .inc();
+          if (operationName) {
+            graphqlErrorCount
+              .labels(
+                operationName,
+                operationType || 'anonymous',
+                (error.extensions?.code as string) || 'UNKNOWN',
+              )
+              .inc();
+          }
 
           _logger.error(
             {
@@ -155,10 +156,11 @@ export class GraphQLLoggerPlugin implements ApolloServerPlugin {
 
       async willSendResponse() {
         const duration = performance.now() - timings.requestStart;
-
-        graphqlRequestDurationSeconds
-          .labels(operationName, operationType || 'anonymous')
-          .observe(duration / 1000); // Convert to seconds
+        if (operationName) {
+          graphqlRequestDurationSeconds
+            .labels(operationName, operationType || 'anonymous')
+            .observe(duration / 1000); // Convert to seconds
+        }
 
         _logger.info(
           {
