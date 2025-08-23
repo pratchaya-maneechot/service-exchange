@@ -5,6 +5,7 @@ export interface AppConfig {
   corsOrigins?: string[];
   appName: string;
   appVersion: string;
+  slowThreshold?: number;
 }
 
 export interface RedisConfig {

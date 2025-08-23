@@ -14,4 +14,5 @@ export interface RawEnv {
   LINE_CHANNEL_ID?: string;
   LINE_CHANNEL_SECRET?: string;
   LINE_CHANNEL_ACCESS_TOKEN?: string;
+  LOG_SLOW_THRESHOLD?: string;
 }

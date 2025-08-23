@@ -12,4 +12,5 @@ export default registerAs<ConfigType['app']>('app', () => ({
   corsOrigins: getOsEnv('CORS_ORIGINS', '*')?.split(',').filter(Boolean),
   appName: getOsEnv('APP_NAME', 'api-gateway'),
   appVersion: getOsEnv('APP_VERSION', 'vLocal-dev'),
+  slowThreshold: toNumber(getOsEnv('LOG_SLOW_THRESHOLD', '1500')),
 }));

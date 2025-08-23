@@ -5,10 +5,11 @@ import { GraphQLModule as NestGraphQLModule } from '@nestjs/graphql';
 import { join } from 'path';
 import { IAppContext } from 'src/common/types/context.type';
 import { ConfigType } from 'src/common/types/config.type';
-import { GraphQLLoggerPlugin } from './plugins/logger.plugin';
+import { GraphQLLoggingPlugin } from './plugins/logger.plugin';
+import { GraphQLMetricsPlugin } from './plugins/metrics.plugin';
 
 @Module({
-  providers: [GraphQLLoggerPlugin],
+  providers: [GraphQLLoggingPlugin, GraphQLMetricsPlugin],
   imports: [
     NestGraphQLModule.forRootAsync<ApolloDriverConfig>({
       driver: ApolloDriver,

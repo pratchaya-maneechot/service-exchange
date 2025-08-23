@@ -6,27 +6,6 @@ import { stdSerializers } from 'pino-http';
 import { IAppContext } from 'src/common/types/context.type';
 import { ConfigService } from '@nestjs/config';
 import { ConfigType } from 'src/common/types/config.type';
-import { Histogram, Counter } from 'prom-client';
-
-const LOG_SLOW_RESOLVERS_THRESHOLD = 1500; // ms
-
-const graphqlRequestDurationSeconds = new Histogram({
-  name: 'graphql_request_duration_seconds',
-  help: 'Duration of GraphQL requests in seconds',
-  labelNames: ['operationName', 'operationType'],
-});
-
-const graphqlErrorCount = new Counter({
-  name: 'graphql_errors_total',
-  help: 'Total number of GraphQL errors',
-  labelNames: ['operationName', 'operationType', 'errorType'],
-});
-
-const graphqlResolverDurationSeconds = new Histogram({
-  name: 'graphql_resolver_duration_seconds',
-  help: 'Duration of GraphQL field resolvers in seconds',
-  labelNames: ['parentType', 'fieldName', 'isSlow'],
-});
 
 interface RequestTimings {
   requestStart: number;
@@ -37,9 +16,9 @@ interface RequestTimings {
 }
 
 @Plugin()
-export class GraphQLLoggerPlugin implements ApolloServerPlugin {
+export class GraphQLLoggingPlugin implements ApolloServerPlugin {
   constructor(
-    @InjectPinoLogger(GraphQLLoggerPlugin.name)
+    @InjectPinoLogger(GraphQLLoggingPlugin.name)
     private readonly logger: PinoLogger,
     private readonly config: ConfigService<ConfigType>,
   ) {}
@@ -72,6 +51,9 @@ export class GraphQLLoggerPlugin implements ApolloServerPlugin {
     );
 
     const _logger = this.logger;
+    const slowThreshold = this.config.get('app.slowThreshold', {
+      infer: true,
+    });
 
     return {
       async parsingDidStart() {
@@ -104,10 +86,7 @@ export class GraphQLLoggerPlugin implements ApolloServerPlugin {
               timings.resolverTimings[fieldKey] =
                 (timings.resolverTimings[fieldKey] || 0) + duration;
 
-              const isSlow = duration > LOG_SLOW_RESOLVERS_THRESHOLD;
-              graphqlResolverDurationSeconds
-                .labels(info.parentType.name, info.fieldName, String(isSlow))
-                .observe(duration / 1000); // Convert to seconds
+              const isSlow = slowThreshold && duration > slowThreshold;
 
               if (isSlow || error) {
                 const logLevel = error ? 'warn' : 'debug';
@@ -130,16 +109,6 @@ export class GraphQLLoggerPlugin implements ApolloServerPlugin {
 
       async didEncounterErrors({ errors }) {
         errors?.forEach((error) => {
-          if (operationName) {
-            graphqlErrorCount
-              .labels(
-                operationName,
-                operationType || 'anonymous',
-                (error.extensions?.code as string) || 'UNKNOWN',
-              )
-              .inc();
-          }
-
           _logger.error(
             {
               operationName,
@@ -156,11 +125,6 @@ export class GraphQLLoggerPlugin implements ApolloServerPlugin {
 
       async willSendResponse() {
         const duration = performance.now() - timings.requestStart;
-        if (operationName) {
-          graphqlRequestDurationSeconds
-            .labels(operationName, operationType || 'anonymous')
-            .observe(duration / 1000); // Convert to seconds
-        }
 
         _logger.info(
           {

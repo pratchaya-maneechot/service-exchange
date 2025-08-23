@@ -14,8 +14,6 @@ import { v4 } from 'uuid';
               config.getOrThrow('app.nodeEnv', { infer: true }) !== 'production'
                 ? 'debug'
                 : 'info',
-            genReqId: (req) =>
-              req.id ?? (req.headers['x-request-id'] as string) ?? v4(),
             redact: [
               // `req.headers.x-line-signature`,
               'req.headers.authorization',
